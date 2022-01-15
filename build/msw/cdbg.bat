@@ -1,0 +1,2 @@
+@echo off
+mingw32-make -f makefile.gcc SHELL=cmd BUILD=debug SHARED=1 MONOLITHIC=0 USE_GUI=1 USE_OPENGL=0 USE_RIBBON=0 DEBUG_FLAG=1 DEBUG_INFO=1 VENDOR=x86 CXXFLAGS="-std=gnu++17" 
