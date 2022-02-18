@@ -33,15 +33,14 @@
 // wxOverlay
 // ----------------------------------------------------------------------------
 
-wxOverlay::wxOverlay()
-{
-    m_impl = new wxOverlayImpl();
-    m_inDrawing = false;
-}
-
 wxOverlay::~wxOverlay()
 {
     delete m_impl;
+}
+
+bool wxOverlay::IsNative() const
+{
+    return m_impl->IsNative();
 }
 
 bool wxOverlay::IsOk()
@@ -76,7 +75,16 @@ void wxOverlay::Reset()
     wxASSERT_MSG(m_inDrawing==false,wxT("cannot reset overlay during drawing"));
     m_impl->Reset();
 }
+// ----------------------------------------------------------------------------
 
+wxOverlay::Impl::~Impl()
+{
+}
+
+bool wxOverlay::Impl::IsNative() const
+{
+    return true;
+}
 
 // ----------------------------------------------------------------------------
 // wxDCOverlay
@@ -129,7 +137,30 @@ void wxDCOverlay::Clear()
 // generic implementation of wxOverlayImpl
 // ----------------------------------------------------------------------------
 
-#ifndef wxHAS_NATIVE_OVERLAY
+#ifdef wxHAS_GENERIC_OVERLAY
+
+namespace {
+class wxOverlayImpl: public wxOverlay::Impl
+{
+public:
+    wxOverlayImpl();
+    ~wxOverlayImpl();
+    virtual bool IsNative() const wxOVERRIDE;
+    virtual bool IsOk() wxOVERRIDE;
+    virtual void Init(wxDC* dc, int x, int y, int width, int height) wxOVERRIDE;
+    virtual void BeginDrawing(wxDC* dc) wxOVERRIDE;
+    virtual void EndDrawing(wxDC* dc) wxOVERRIDE;
+    virtual void Clear(wxDC* dc) wxOVERRIDE;
+    virtual void Reset() wxOVERRIDE;
+
+    wxBitmap m_bmpSaved;
+    int m_x;
+    int m_y;
+    int m_width;
+    int m_height;
+    wxWindow* m_window;
+};
+} // namespace
 
 wxOverlayImpl::wxOverlayImpl()
 {
@@ -139,6 +170,11 @@ wxOverlayImpl::wxOverlayImpl()
 
 wxOverlayImpl::~wxOverlayImpl()
 {
+}
+
+bool wxOverlayImpl::IsNative() const
+{
+    return false;
 }
 
 bool wxOverlayImpl::IsOk()
@@ -182,6 +218,21 @@ void wxOverlayImpl::EndDrawing(wxDC* WXUNUSED(dc))
 {
 }
 
-#endif // !wxHAS_NATIVE_OVERLAY
+#ifndef wxHAS_NATIVE_OVERLAY
+wxOverlay::Impl* wxOverlay::Create()
+{
+    return new wxOverlayImpl;
+}
+#endif
 
+#endif // wxHAS_GENERIC_OVERLAY
 
+wxOverlay::wxOverlay()
+{
+    m_impl = Create();
+#if defined(wxHAS_GENERIC_OVERLAY) && defined(wxHAS_NATIVE_OVERLAY)
+    if (m_impl == NULL)
+        m_impl = new wxOverlayImpl;
+#endif
+    m_inDrawing = false;
+}

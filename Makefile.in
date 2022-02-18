@@ -5081,6 +5081,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_2___LOWLEVEL_SRC_OBJECTS =  \
 	monodll_gtk_sockgtk.o \
 	monodll_gtk_minifram.o \
 	monodll_gtk_nonownedwnd.o \
+	monodll_gtk_overlay.o \
 	monodll_gtk_pen.o \
 	monodll_gtk_popupwin.o \
 	monodll_private.o \
@@ -5122,6 +5123,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_3___LOWLEVEL_SRC_OBJECTS =  \
 	monodll_gtk_sockgtk.o \
 	monodll_gtk_minifram.o \
 	monodll_gtk_nonownedwnd.o \
+	monodll_gtk_overlay.o \
 	monodll_gtk_pen.o \
 	monodll_gtk_popupwin.o \
 	monodll_private.o \
@@ -5160,6 +5162,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_4___LOWLEVEL_SRC_OBJECTS =  \
 	monodll_gtk_sockgtk.o \
 	monodll_gtk_minifram.o \
 	monodll_gtk_nonownedwnd.o \
+	monodll_gtk_overlay.o \
 	monodll_gtk_pen.o \
 	monodll_gtk_popupwin.o \
 	monodll_private.o \
@@ -5989,6 +5992,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_2___LOWLEVEL_SRC_OBJECTS_1 =  \
 	monodll_gtk_sockgtk.o \
 	monodll_gtk_minifram.o \
 	monodll_gtk_nonownedwnd.o \
+	monodll_gtk_overlay.o \
 	monodll_gtk_pen.o \
 	monodll_gtk_popupwin.o \
 	monodll_private.o \
@@ -6030,6 +6034,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_3___LOWLEVEL_SRC_OBJECTS_1 =  \
 	monodll_gtk_sockgtk.o \
 	monodll_gtk_minifram.o \
 	monodll_gtk_nonownedwnd.o \
+	monodll_gtk_overlay.o \
 	monodll_gtk_pen.o \
 	monodll_gtk_popupwin.o \
 	monodll_private.o \
@@ -6068,6 +6073,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_4___LOWLEVEL_SRC_OBJECTS_1 =  \
 	monodll_gtk_sockgtk.o \
 	monodll_gtk_minifram.o \
 	monodll_gtk_nonownedwnd.o \
+	monodll_gtk_overlay.o \
 	monodll_gtk_pen.o \
 	monodll_gtk_popupwin.o \
 	monodll_private.o \
@@ -7085,6 +7091,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_2___LOWLEVEL_SRC_OBJECTS_2 =  \
 	monolib_gtk_sockgtk.o \
 	monolib_gtk_minifram.o \
 	monolib_gtk_nonownedwnd.o \
+	monolib_gtk_overlay.o \
 	monolib_gtk_pen.o \
 	monolib_gtk_popupwin.o \
 	monolib_private.o \
@@ -7126,6 +7133,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_3___LOWLEVEL_SRC_OBJECTS_2 =  \
 	monolib_gtk_sockgtk.o \
 	monolib_gtk_minifram.o \
 	monolib_gtk_nonownedwnd.o \
+	monolib_gtk_overlay.o \
 	monolib_gtk_pen.o \
 	monolib_gtk_popupwin.o \
 	monolib_private.o \
@@ -7164,6 +7172,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_4___LOWLEVEL_SRC_OBJECTS_2 =  \
 	monolib_gtk_sockgtk.o \
 	monolib_gtk_minifram.o \
 	monolib_gtk_nonownedwnd.o \
+	monolib_gtk_overlay.o \
 	monolib_gtk_pen.o \
 	monolib_gtk_popupwin.o \
 	monolib_private.o \
@@ -7993,6 +8002,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_2___LOWLEVEL_SRC_OBJECTS_3 =  \
 	monolib_gtk_sockgtk.o \
 	monolib_gtk_minifram.o \
 	monolib_gtk_nonownedwnd.o \
+	monolib_gtk_overlay.o \
 	monolib_gtk_pen.o \
 	monolib_gtk_popupwin.o \
 	monolib_private.o \
@@ -8034,6 +8044,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_3___LOWLEVEL_SRC_OBJECTS_3 =  \
 	monolib_gtk_sockgtk.o \
 	monolib_gtk_minifram.o \
 	monolib_gtk_nonownedwnd.o \
+	monolib_gtk_overlay.o \
 	monolib_gtk_pen.o \
 	monolib_gtk_popupwin.o \
 	monolib_private.o \
@@ -8072,6 +8083,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_4___LOWLEVEL_SRC_OBJECTS_3 =  \
 	monolib_gtk_sockgtk.o \
 	monolib_gtk_minifram.o \
 	monolib_gtk_nonownedwnd.o \
+	monolib_gtk_overlay.o \
 	monolib_gtk_pen.o \
 	monolib_gtk_popupwin.o \
 	monolib_private.o \
@@ -9244,6 +9256,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_2___LOWLEVEL_SRC_OBJECTS_4 =  \
 	coredll_gtk_sockgtk.o \
 	coredll_gtk_minifram.o \
 	coredll_gtk_nonownedwnd.o \
+	coredll_gtk_overlay.o \
 	coredll_gtk_pen.o \
 	coredll_gtk_popupwin.o \
 	coredll_private.o \
@@ -9285,6 +9298,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_3___LOWLEVEL_SRC_OBJECTS_4 =  \
 	coredll_gtk_sockgtk.o \
 	coredll_gtk_minifram.o \
 	coredll_gtk_nonownedwnd.o \
+	coredll_gtk_overlay.o \
 	coredll_gtk_pen.o \
 	coredll_gtk_popupwin.o \
 	coredll_private.o \
@@ -9323,6 +9337,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_4___LOWLEVEL_SRC_OBJECTS_4 =  \
 	coredll_gtk_sockgtk.o \
 	coredll_gtk_minifram.o \
 	coredll_gtk_nonownedwnd.o \
+	coredll_gtk_overlay.o \
 	coredll_gtk_pen.o \
 	coredll_gtk_popupwin.o \
 	coredll_private.o \
@@ -10152,6 +10167,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_2___LOWLEVEL_SRC_OBJECTS_5 =  \
 	coredll_gtk_sockgtk.o \
 	coredll_gtk_minifram.o \
 	coredll_gtk_nonownedwnd.o \
+	coredll_gtk_overlay.o \
 	coredll_gtk_pen.o \
 	coredll_gtk_popupwin.o \
 	coredll_private.o \
@@ -10193,6 +10209,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_3___LOWLEVEL_SRC_OBJECTS_5 =  \
 	coredll_gtk_sockgtk.o \
 	coredll_gtk_minifram.o \
 	coredll_gtk_nonownedwnd.o \
+	coredll_gtk_overlay.o \
 	coredll_gtk_pen.o \
 	coredll_gtk_popupwin.o \
 	coredll_private.o \
@@ -10231,6 +10248,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_4___LOWLEVEL_SRC_OBJECTS_5 =  \
 	coredll_gtk_sockgtk.o \
 	coredll_gtk_minifram.o \
 	coredll_gtk_nonownedwnd.o \
+	coredll_gtk_overlay.o \
 	coredll_gtk_pen.o \
 	coredll_gtk_popupwin.o \
 	coredll_private.o \
@@ -10976,6 +10994,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_2___LOWLEVEL_SRC_OBJECTS_6 =  \
 	corelib_gtk_sockgtk.o \
 	corelib_gtk_minifram.o \
 	corelib_gtk_nonownedwnd.o \
+	corelib_gtk_overlay.o \
 	corelib_gtk_pen.o \
 	corelib_gtk_popupwin.o \
 	corelib_private.o \
@@ -11017,6 +11036,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_3___LOWLEVEL_SRC_OBJECTS_6 =  \
 	corelib_gtk_sockgtk.o \
 	corelib_gtk_minifram.o \
 	corelib_gtk_nonownedwnd.o \
+	corelib_gtk_overlay.o \
 	corelib_gtk_pen.o \
 	corelib_gtk_popupwin.o \
 	corelib_private.o \
@@ -11055,6 +11075,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_4___LOWLEVEL_SRC_OBJECTS_6 =  \
 	corelib_gtk_sockgtk.o \
 	corelib_gtk_minifram.o \
 	corelib_gtk_nonownedwnd.o \
+	corelib_gtk_overlay.o \
 	corelib_gtk_pen.o \
 	corelib_gtk_popupwin.o \
 	corelib_private.o \
@@ -11884,6 +11905,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_2___LOWLEVEL_SRC_OBJECTS_7 =  \
 	corelib_gtk_sockgtk.o \
 	corelib_gtk_minifram.o \
 	corelib_gtk_nonownedwnd.o \
+	corelib_gtk_overlay.o \
 	corelib_gtk_pen.o \
 	corelib_gtk_popupwin.o \
 	corelib_private.o \
@@ -11925,6 +11947,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_3___LOWLEVEL_SRC_OBJECTS_7 =  \
 	corelib_gtk_sockgtk.o \
 	corelib_gtk_minifram.o \
 	corelib_gtk_nonownedwnd.o \
+	corelib_gtk_overlay.o \
 	corelib_gtk_pen.o \
 	corelib_gtk_popupwin.o \
 	corelib_private.o \
@@ -11963,6 +11986,7 @@ COND_TOOLKIT_GTK_TOOLKIT_VERSION_4___LOWLEVEL_SRC_OBJECTS_7 =  \
 	corelib_gtk_sockgtk.o \
 	corelib_gtk_minifram.o \
 	corelib_gtk_nonownedwnd.o \
+	corelib_gtk_overlay.o \
 	corelib_gtk_pen.o \
 	corelib_gtk_popupwin.o \
 	corelib_private.o \
@@ -14477,7 +14501,7 @@ distclean: clean
 @COND_MONOLITHIC_0_USE_HTML_1@wxhtml: $(____wxhtml_namedll_DEP) $(____wxhtml_namelib_DEP)
 
 @COND_MONOLITHIC_0_SHARED_1_USE_GUI_1_USE_WEBVIEW_1@$(LIBDIRNAME)/$(DLLPREFIX)$(WXDLLNAMEPREFIXGUI)$(WXUNICODEFLAG)$(WXDEBUGFLAG)$(WX_LIB_FLAVOUR)_webview$(WXCOMPILER)$(VENDORTAG)$(WXDLLVERSIONTAG)$(dll___targetsuf3): $(WEBVIEWDLL_OBJECTS) $(__wxexpat___depname) $(__wxzlib___depname) $(__wxregex___depname) $(__wxtiff___depname) $(__wxjpeg___depname) $(__wxpng___depname) $(__wxscintilla___depname) $(__coredll___depname) $(__basedll___depname) $(__webviewdll___win32rc)
-@COND_MONOLITHIC_0_SHARED_1_USE_GUI_1_USE_WEBVIEW_1@	$(SHARED_LD_CXX) $@ $(WEBVIEWDLL_OBJECTS) -L$(LIBDIRNAME) -L$(LIBDIRNAME)    -L$(LIBDIRNAME) $(__webviewdll___macinstnamecmd) $(__webviewdll___importlib) $(__webviewdll___soname_flags) $(WXMACVERSION_CMD) $(LDFLAGS)  $(WX_LDFLAGS) $(__LIB_TIFF_p) $(__LIB_JPEG_p) $(__LIB_PNG_p)  $(EXTRALIBS_FOR_GUI) $(__LIB_ZLIB_p) $(__LIB_REGEX_p) $(__LIB_EXPAT_p) $(EXTRALIBS_FOR_BASE) -lwx_$(PORTNAME)$(WXUNIVNAME)$(WXUNICODEFLAG)$(WXDEBUGFLAG)$(WX_LIB_FLAVOUR)_core-$(WX_RELEASE)$(HOST_SUFFIX) -lwx_base$(WXBASEPORT)$(WXUNICODEFLAG)$(WXDEBUGFLAG)$(WX_LIB_FLAVOUR)-$(WX_RELEASE)$(HOST_SUFFIX) $(EXTRALIBS_WEBVIEW) $(LIBS)
+@COND_MONOLITHIC_0_SHARED_1_USE_GUI_1_USE_WEBVIEW_1@	$(SHARED_LD_CXX) $@ $(WEBVIEWDLL_OBJECTS) -L$(LIBDIRNAME) -L$(LIBDIRNAME)    -L$(LIBDIRNAME) $(__webviewdll___macinstnamecmd) $(__webviewdll___importlib) $(__webviewdll___soname_flags) $(WXMACVERSION_CMD)  $(LDFLAGS)  $(WX_LDFLAGS) $(__LIB_TIFF_p) $(__LIB_JPEG_p) $(__LIB_PNG_p)  $(EXTRALIBS_FOR_GUI) $(__LIB_ZLIB_p) $(__LIB_REGEX_p) $(__LIB_EXPAT_p) $(EXTRALIBS_FOR_BASE) -lwx_$(PORTNAME)$(WXUNIVNAME)$(WXUNICODEFLAG)$(WXDEBUGFLAG)$(WX_LIB_FLAVOUR)_core-$(WX_RELEASE)$(HOST_SUFFIX) -lwx_base$(WXBASEPORT)$(WXUNICODEFLAG)$(WXDEBUGFLAG)$(WX_LIB_FLAVOUR)-$(WX_RELEASE)$(HOST_SUFFIX) $(EXTRALIBS_WEBVIEW) $(LIBS)
 @COND_MONOLITHIC_0_SHARED_1_USE_GUI_1_USE_WEBVIEW_1@	$(DYLIB_RPATH_POSTLINK)
 @COND_MONOLITHIC_0_SHARED_1_USE_GUI_1_USE_WEBVIEW_1@	
 @COND_MONOLITHIC_0_SHARED_1_USE_GUI_1_USE_WEBVIEW_1@	$(__webviewdll___so_symlinks_cmd)
@@ -18614,6 +18638,15 @@ monodll_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(MONODLL_ODEP)
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@monodll_gtk_nonownedwnd.o: $(srcdir)/src/gtk/nonownedwnd.cpp $(MONODLL_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/gtk/nonownedwnd.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@monodll_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(MONODLL_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_3_USE_GUI_1@monodll_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(MONODLL_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_3_USE_GUI_1@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@monodll_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(MONODLL_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@monodll_gtk_pen.o: $(srcdir)/src/gtk/pen.cpp $(MONODLL_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/gtk/pen.cpp
@@ -23924,6 +23957,15 @@ monolib_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(MONOLIB_ODEP)
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@monolib_gtk_nonownedwnd.o: $(srcdir)/src/gtk/nonownedwnd.cpp $(MONOLIB_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/gtk/nonownedwnd.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@monolib_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(MONOLIB_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_3_USE_GUI_1@monolib_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(MONOLIB_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_3_USE_GUI_1@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@monolib_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(MONOLIB_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@monolib_gtk_pen.o: $(srcdir)/src/gtk/pen.cpp $(MONOLIB_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/gtk/pen.cpp
@@ -29343,6 +29385,15 @@ coredll_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(COREDLL_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@coredll_gtk_nonownedwnd.o: $(srcdir)/src/gtk/nonownedwnd.cpp $(COREDLL_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/gtk/nonownedwnd.cpp
 
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@coredll_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(COREDLL_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_3_USE_GUI_1@coredll_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(COREDLL_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_3_USE_GUI_1@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@coredll_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(COREDLL_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
+
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@coredll_gtk_pen.o: $(srcdir)/src/gtk/pen.cpp $(COREDLL_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/gtk/pen.cpp
 
@@ -33614,6 +33665,15 @@ corelib_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(CORELIB_ODEP)
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@corelib_gtk_nonownedwnd.o: $(srcdir)/src/gtk/nonownedwnd.cpp $(CORELIB_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/gtk/nonownedwnd.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@corelib_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(CORELIB_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_3_USE_GUI_1@corelib_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(CORELIB_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_3_USE_GUI_1@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
+
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@corelib_gtk_overlay.o: $(srcdir)/src/gtk/overlay.cpp $(CORELIB_ODEP)
+@COND_TOOLKIT_GTK_TOOLKIT_VERSION_2_USE_GUI_1@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/gtk/overlay.cpp
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@corelib_gtk_pen.o: $(srcdir)/src/gtk/pen.cpp $(CORELIB_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/gtk/pen.cpp

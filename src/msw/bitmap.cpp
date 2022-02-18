@@ -232,24 +232,40 @@ wxBitmapRefData::wxBitmapRefData(const wxBitmapRefData& data)
     if ( data.m_hBitmap )
     {
         wxDIB dib((HBITMAP)(data.m_hBitmap));
-        // DDB obtained from CopyFromDIB() can have different
-        // colour depth than source DIB so we need to check it.
-        CopyFromDIB(dib);
-        if ( m_depth != dib.GetDepth() )
+
+        // Cloning a DIB should create a DIB, while cloning a DDB should create
+        // a DDB, so check what do we have.
+        if ( data.m_isDIB )
         {
-            // We got DDB with a different colour depth than we wanted, so we
-            // can't use it and need to continue using the DIB instead.
-            wxDIB dibDst(m_width, m_height, dib.GetDepth());
-            if ( dibDst.IsOk() )
+            const int w = dib.GetWidth();
+            const int h = dib.GetHeight();
+            const int d = dib.GetDepth();
+
+            wxDIB dibDst(w, h, d);
+            memcpy(dibDst.GetData(), dib.GetData(), wxDIB::GetLineSize(w, d)*h);
+            InitFromDIB(dibDst);
+        }
+        else
+        {
+            // DDB obtained from CopyFromDIB() can have different
+            // colour depth than source DIB so we need to check it.
+            CopyFromDIB(dib);
+            if ( m_depth != dib.GetDepth() )
             {
-                m_depth = dib.GetDepth();
-                memcpy(dibDst.GetData(), dib.GetData(),
-                        wxDIB::GetLineSize(m_width, m_depth)*m_height);
-                AssignDIB(dibDst);
-            }
-            else
-            {
-                // Nothing else left to do...
+                // We got DDB with a different colour depth than we wanted, so we
+                // can't use it and need to continue using the DIB instead.
+                wxDIB dibDst(m_width, m_height, dib.GetDepth());
+                if ( dibDst.IsOk() )
+                {
+                    m_depth = dib.GetDepth();
+                    memcpy(dibDst.GetData(), dib.GetData(),
+                            wxDIB::GetLineSize(m_width, m_depth)*m_height);
+                    AssignDIB(dibDst);
+                }
+                else
+                {
+                    // Nothing else left to do...
+                }
             }
         }
     }
@@ -747,9 +763,14 @@ bool wxBitmap::Create(int width, int height, const wxDC& dc)
         return false;
 }
 
-bool wxBitmap::CreateScaled(int w, int h, int d, double logicalScale)
+bool wxBitmap::CreateWithDIPSize(const wxSize& size, double scale, int depth)
 {
-    return Create(wxRound(w*logicalScale), wxRound(h*logicalScale), d);
+    if ( !Create(size*scale, depth) )
+        return false;
+
+    GetBitmapData()->m_scaleFactor = scale;
+
+    return true;
 }
 
 bool wxBitmap::DoCreate(int w, int h, int d, WXHDC hdc)
@@ -1362,47 +1383,6 @@ bool wxBitmap::InitFromHBITMAP(WXHBITMAP bmp, int width, int height, int depth)
     GetBitmapData()->m_hasAlpha = (depth == 32) && CheckAlpha(bmp);
 
     return IsOk();
-}
-
-// ----------------------------------------------------------------------------
-// scale factor-related functions
-// ----------------------------------------------------------------------------
-
-// wxMSW doesn't really use scale factor, but we must still store it to use the
-// correct sizes in the code which uses it to decide on the bitmap size to use.
-
-void  wxBitmap::SetScaleFactor(double scale)
-{
-    wxCHECK_RET( IsOk(), wxT("invalid bitmap") );
-
-    GetBitmapData()->m_scaleFactor = scale;
-}
-
-double wxBitmap::GetScaleFactor() const
-{
-    wxCHECK_MSG( IsOk(), -1, wxT("invalid bitmap") );
-
-    return GetBitmapData()->m_scaleFactor;
-}
-
-wxSize wxBitmap::GetDIPSize() const
-{
-    return GetSize() / GetScaleFactor();
-}
-
-double wxBitmap::GetScaledWidth() const
-{
-    return GetWidth();
-}
-
-double wxBitmap::GetScaledHeight() const
-{
-    return GetHeight();
-}
-
-wxSize wxBitmap::GetScaledSize() const
-{
-    return GetSize();
 }
 
 // ----------------------------------------------------------------------------

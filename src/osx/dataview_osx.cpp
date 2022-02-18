@@ -50,6 +50,45 @@ wxString ConcatenateDataViewItemValues(wxDataViewCtrl const* dataViewCtrlPtr, wx
 }
 
 // ============================================================================
+// wxOSXDVCDeleting and wxOSXDVCScopedDeleter
+// ============================================================================
+
+struct wxOSXDVCDeleting
+{
+    explicit wxOSXDVCDeleting(const wxDataViewItem& parent) : m_parent(parent)
+    {
+    }
+
+    const wxDataViewItem m_parent;
+
+    wxDECLARE_NO_COPY_CLASS(wxOSXDVCDeleting);
+};
+
+// Helper class which exists only to reset m_Deleting on scope exit.
+class wxOSXDVCScopedDeleter
+{
+public:
+    wxOSXDVCScopedDeleter(wxDataViewCtrl* dvc, const wxDataViewItem& parent) :
+        m_dvc(dvc),
+        m_valueOrig(m_dvc->m_Deleting)
+    {
+        m_dvc->m_Deleting = new wxOSXDVCDeleting(parent);
+    }
+
+    ~wxOSXDVCScopedDeleter()
+    {
+        delete m_dvc->m_Deleting;
+        m_dvc->m_Deleting = m_valueOrig;
+    }
+
+private:
+    wxDataViewCtrl* const m_dvc;
+    wxOSXDVCDeleting* const m_valueOrig;
+
+    wxDECLARE_NO_COPY_CLASS(wxOSXDVCScopedDeleter);
+};
+
+// ============================================================================
 // wxOSXDataViewModelNotifier
 // ============================================================================
 class wxOSXDataViewModelNotifier : public wxDataViewModelNotifier
@@ -192,42 +231,33 @@ bool wxOSXDataViewModelNotifier::ItemsChanged(wxDataViewItemArray const& items)
 
 bool wxOSXDataViewModelNotifier::ItemDeleted(wxDataViewItem const& parent, wxDataViewItem const& item)
 {
-  bool noFailureFlag;
-
-
   wxCHECK_MSG(item.IsOk(),false,"To be deleted item is invalid.");
  // when this method is called and currently an item is being edited this item may have already been deleted in the model (the passed item and the being edited item have
  // not to be identical because the being edited item might be below the passed item in the hierarchy);
  // to prevent the control trying to ask the model to update an already deleted item the control is informed that currently a deleting process
  // has been started and that variables can currently not be updated even when requested by the system:
-  m_DataViewCtrlPtr->SetDeleting(true);
-  noFailureFlag = m_DataViewCtrlPtr->GetDataViewPeer()->Remove(parent);
- // enable automatic updating again:
-  m_DataViewCtrlPtr->SetDeleting(false);
+  wxOSXDVCScopedDeleter setDeleting(m_DataViewCtrlPtr, parent);
+
+  bool ok = m_DataViewCtrlPtr->GetDataViewPeer()->Remove(parent);
 
   AdjustAutosizedColumns();
- // done:
-  return noFailureFlag;
+
+  return ok;
 }
 
 bool wxOSXDataViewModelNotifier::ItemsDeleted(wxDataViewItem const& parent, wxDataViewItemArray const& WXUNUSED(items))
 {
-  bool noFailureFlag;
-
-
  // when this method is called and currently an item is being edited this item may have already been deleted in the model (the passed item and the being edited item have
  // not to be identical because the being edited item might be below the passed item in the hierarchy);
  // to prevent the control trying to ask the model to update an already deleted item the control is informed that currently a deleting process
  // has been started and that variables can currently not be updated even when requested by the system:
-  m_DataViewCtrlPtr->SetDeleting(true);
+    wxOSXDVCScopedDeleter setDeleting(m_DataViewCtrlPtr, parent);
  // delete all specified items:
-  noFailureFlag = m_DataViewCtrlPtr->GetDataViewPeer()->Remove(parent);
- // enable automatic updating again:
-  m_DataViewCtrlPtr->SetDeleting(false);
+    bool ok = m_DataViewCtrlPtr->GetDataViewPeer()->Remove(parent);
 
   AdjustAutosizedColumns();
- // done:
-  return noFailureFlag;
+
+  return ok;
 }
 
 bool wxOSXDataViewModelNotifier::ValueChanged(wxDataViewItem const& item, unsigned int col)
@@ -251,7 +281,9 @@ bool wxOSXDataViewModelNotifier::ValueChanged(wxDataViewItem const& item, unsign
 
 bool wxOSXDataViewModelNotifier::Cleared()
 {
-  return m_DataViewCtrlPtr->GetDataViewPeer()->Reload();
+    // NOTE: See comments in ItemDeleted method above
+    wxOSXDVCScopedDeleter setDeleting(m_DataViewCtrlPtr, wxDataViewItem());
+    return m_DataViewCtrlPtr->GetDataViewPeer()->Reload();
 }
 
 void wxOSXDataViewModelNotifier::Resort()
@@ -383,9 +415,21 @@ wxDataViewCtrl::~wxDataViewCtrl()
 void wxDataViewCtrl::Init()
 {
   m_CustomRendererPtr = NULL;
-  m_Deleting          = false;
+  m_Deleting          = NULL;
   m_cgContext         = NULL;
   m_ModelNotifier     = NULL;
+}
+
+bool wxDataViewCtrl::IsDeleting() const
+{
+    return m_Deleting != NULL;
+}
+
+bool wxDataViewCtrl::IsClearing() const
+{
+    // We only set the item being deleted to an invalid item when we're
+    // clearing the entire model.
+    return m_Deleting != NULL && !m_Deleting->m_parent.IsOk();
 }
 
 bool wxDataViewCtrl::Create(wxWindow *parent,
@@ -714,6 +758,23 @@ void wxDataViewCtrl::EditItem(const wxDataViewItem& item, const wxDataViewColumn
 {
     GetDataViewPeer()->StartEditor(item, GetColumnPosition(column));
 }
+
+#if wxUSE_DRAG_AND_DROP
+
+bool wxDataViewCtrl::DoEnableDropTarget(const wxVector<wxDataFormat> &formats)
+{
+    wxDropTarget* dt = NULL;
+    if (wxDataObject* dataObject = CreateDataObject(formats))
+    {
+        dt = new wxDropTarget(dataObject);
+    }
+
+    SetDropTarget(dt);
+
+    return true;
+}
+
+#endif // wxUSE_DRAG_AND_DROP
 
 void wxDataViewCtrl::FinishCustomItemEditing()
 {

@@ -77,6 +77,13 @@
 #include "wx/private/rescale.h"
 #include "wx/private/window.h"
 
+#if defined(__WXOSX__)
+    // We need wxOSXGetMainScreenContentScaleFactor() declaration.
+    #include "wx/osx/core/private.h"
+#endif
+
+#include <math.h>
+
 // Windows List
 WXDLLIMPEXP_DATA_CORE(wxWindowList) wxTopLevelWindows;
 
@@ -2859,7 +2866,7 @@ void wxWindowBase::OnInternalIdle()
 }
 
 // ----------------------------------------------------------------------------
-// DPI-independent pixels and dialog units translations
+// Conversions between various pixel kinds and dialog units translations
 // ----------------------------------------------------------------------------
 
 wxSize wxWindowBase::GetDPI() const
@@ -2867,7 +2874,65 @@ wxSize wxWindowBase::GetDPI() const
     return wxDisplay(static_cast<const wxWindow*>(this)).GetPPI();
 }
 
-#ifndef wxHAS_DPI_INDEPENDENT_PIXELS
+#ifdef wxHAS_DPI_INDEPENDENT_PIXELS
+
+// In this case logical pixels are DIPs, so we don't need to define conversion
+// to/from them (or, rather, they are already defined as trivial inline
+// functions in the header), but we do need to define conversions to/from
+// physical pixels.
+
+namespace
+{
+
+double GetContentScaleFactorFor(const wxWindowBase* w)
+{
+    if ( w )
+        return w->GetContentScaleFactor();
+
+#ifdef __WXOSX__
+    return wxOSXGetMainScreenContentScaleFactor();
+#else
+    return 1.0;
+#endif
+}
+
+} // anonymous namespace
+
+/* static */
+wxSize wxWindowBase::FromPhys(wxSize sz, const wxWindowBase* w)
+{
+    const double scale = GetContentScaleFactorFor(w);
+
+    if ( scale != 1.0 )
+    {
+        if ( sz.x != wxDefaultCoord )
+            sz.x = wxRound(sz.x / scale);
+        if ( sz.y != wxDefaultCoord )
+            sz.y = wxRound(sz.y / scale);
+    }
+
+    return sz;
+}
+
+/* static */
+wxSize wxWindowBase::ToPhys(wxSize sz, const wxWindowBase* w)
+{
+    const double scale = GetContentScaleFactorFor(w);
+
+    if ( scale != 1.0 )
+    {
+        if ( sz.x != wxDefaultCoord )
+            sz.x = wxRound(sz.x * scale);
+        if ( sz.y != wxDefaultCoord )
+            sz.y = wxRound(sz.y * scale);
+    }
+
+    return sz;
+}
+
+#else // !wxHAS_DPI_INDEPENDENT_PIXELS
+
+// In this case we have non-trivial implementations for DIP conversions only.
 
 namespace
 {
@@ -2910,7 +2975,7 @@ wxWindowBase::ToDIP(const wxSize& sz, const wxWindowBase* w)
     return wxRescaleCoord(sz).From(dpi).To(baseline);
 }
 
-#endif // !wxHAS_DPI_INDEPENDENT_PIXELS
+#endif // wxHAS_DPI_INDEPENDENT_PIXELS/!wxHAS_DPI_INDEPENDENT_PIXELS
 
 // Windows' computes dialog units using average character width over upper-
 // and lower-case ASCII alphabet and not using the average character width

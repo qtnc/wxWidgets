@@ -467,15 +467,8 @@ t_bitmap     = t_url?,
                (
                    attribute stock_id { t_identifier},
                    attribute stock_client { t_identifier}?
-               )?
-
-t_bitmaps    = (
-                    element bitmap {_, t_bitmap }+ |
-                    (
-                        element svg  {_, t_url } &
-                        element size {_, t_size }
-                    )
-                )
+               )?,
+               attribute default_size { t_size}?
 
 t_font       = (
                    [xrc:p="o"] element size         {_, t_float }* &
@@ -742,10 +735,7 @@ wxButton =
         stdObjectNodeAttributes &
         stdWindowProperties &
         [xrc:p="o"] element label          {_, t_text }* &
-        [xrc:p="o"](
-           element bitmap {_, t_bitmap } |
-           element bitmaps {_, t_bitmaps }
-        )* &
+        [xrc:p="o"] element bitmap         {_, t_bitmap }* &
         [xrc:p="o"] element bitmapposition {_, t_direction }* &
         [xrc:p="o"] element default        {_, t_bool }*
     }
@@ -827,10 +817,7 @@ wxCommandLinkButton =
         stdWindowProperties &
         [xrc:p="important"] element label {_, t_text }* &
         [xrc:p="o"] element note {_, t_text }* &
-        [xrc:p="o"](
-           element bitmap {_, t_bitmap } |
-           element bitmaps {_, t_bitmaps }
-        )* &
+        [xrc:p="o"] element bitmap {_, t_bitmap }* &
         [xrc:p="o"] element default {_, t_bool }*
     }
 
@@ -1495,7 +1482,8 @@ wxSpinButton =
         stdWindowProperties &
         [xrc:p="o"] element value {_, t_integer }* &
         [xrc:p="o"] element min   {_, t_integer }* &
-        [xrc:p="o"] element max   {_, t_integer }*
+        [xrc:p="o"] element max   {_, t_integer }* &
+        [xrc:p="o"] element inc   {_, t_integer }*
     }
 
 
@@ -1507,7 +1495,8 @@ wxSpinCtrl =
         [xrc:p="o"] element value {_, t_integer }* &
         [xrc:p="o"] element min   {_, t_integer }* &
         [xrc:p="o"] element max   {_, t_integer }* &
-        [xrc:p="o"] element base  {_, ("10" | "16") }*
+        [xrc:p="o"] element base  {_, ("10" | "16") }* &
+        [xrc:p="o"] element inc   {_, t_integer }*
     }
 
 
@@ -1562,10 +1551,7 @@ wxStaticBitmap =
         attribute class { "wxStaticBitmap" } &
         stdObjectNodeAttributes &
         stdWindowProperties &
-        (
-            element bitmap {_, t_bitmap } |
-            element bitmaps  {_, t_bitmaps }
-        )
+        element bitmap {_, t_bitmap }
     }
 
 
@@ -1650,16 +1636,8 @@ wxToolBar_tool =
     element object {
         attribute class { "tool" } &
         stdObjectNodeAttributes &
-        (
-            (
-                [xrc:p="important"] element bitmap {_, t_bitmap }* &
-                [xrc:p="o"] element bitmap2  {_, t_bitmap }*
-            ) |
-            (
-                [xrc:p="important"] element bitmaps {_, t_bitmaps }* &
-                [xrc:p="o"] element bitmaps2  {_, t_bitmaps }*
-            )
-        ) &
+        [xrc:p="important"] element bitmap {_, t_bitmap }* &
+        [xrc:p="o"] element bitmap2  {_, t_bitmap }* &
         [xrc:p="o"] element label    {_, t_text }* &
         [xrc:p="o"] element tooltip  {_, t_text }* &
         [xrc:p="o"] element longhelp {_, t_text }* &

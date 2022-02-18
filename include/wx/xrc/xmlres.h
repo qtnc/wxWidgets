@@ -583,11 +583,10 @@ public:
                        const wxArtClient& defaultArtClient = wxASCII_STR(wxART_OTHER),
                        wxSize size = wxDefaultSize) wxOVERRIDE;
 
-    // Gets a bitmap bundle from <bitmap> or <bitmaps>.
-    wxBitmapBundle GetBitmapOrBitmaps(const wxString& paramBitmapName = wxT("bitmap"),
-                                      const wxString& paramBitmapsName = wxT("bitmaps"),
-                                      const wxArtClient& defaultArtClient = wxASCII_STR(wxART_OTHER),
-                                      wxSize size = wxDefaultSize) wxOVERRIDE;
+    // Gets a bitmap bundle.
+    wxBitmapBundle GetBitmapBundle(const wxString& param = wxT("bitmap"),
+                                   const wxArtClient& defaultArtClient = wxASCII_STR(wxART_OTHER),
+                                   wxSize size = wxDefaultSize) wxOVERRIDE;
 
     // Gets an icon.
     wxIcon GetIcon(const wxString& param = wxT("icon"),

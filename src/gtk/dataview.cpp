@@ -211,7 +211,7 @@ public:
     // dnd iface
 
     bool EnableDragSource( const wxDataFormat &format );
-    bool EnableDropTarget( const wxDataFormat &format );
+    bool EnableDropTarget( const wxVector<wxDataFormat> &formats );
 
     gboolean row_draggable( GtkTreeDragSource *drag_source, GtkTreePath *path );
     gboolean drag_data_delete( GtkTreeDragSource *drag_source, GtkTreePath* path );
@@ -2501,7 +2501,7 @@ void wxCellRendererPixbuf::Set(const wxBitmap& bitmap)
         {
             pixbufNew =
             pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, false, 8,
-                int(bitmap.GetScaledWidth()), int(bitmap.GetScaledHeight()));
+                int(bitmap.GetLogicalWidth()), int(bitmap.GetLogicalHeight()));
         }
     }
     g_object_set(G_OBJECT(this), "pixbuf", pixbuf, NULL);
@@ -2520,8 +2520,8 @@ wxCellRendererPixbufRender(GtkCellRenderer* cell, cairo_t* cr, GtkWidget* widget
         wxCellRendererPixbufParentClass->render(cell, cr, widget, background_area, cell_area, flags);
     else
     {
-        const int x = (cell_area->width  - int(bitmap.GetScaledWidth() )) / 2;
-        const int y = (cell_area->height - int(bitmap.GetScaledHeight())) / 2;
+        const int x = (cell_area->width  - int(bitmap.GetLogicalWidth() )) / 2;
+        const int y = (cell_area->height - int(bitmap.GetLogicalHeight())) / 2;
         bitmap.Draw(cr, cell_area->x + x, cell_area->y + y);
     }
 }
@@ -3794,9 +3794,17 @@ bool wxDataViewCtrlInternal::EnableDragSource( const wxDataFormat &format )
     return true;
 }
 
-bool wxDataViewCtrlInternal::EnableDropTarget( const wxDataFormat &format )
+bool wxDataViewCtrlInternal::EnableDropTarget( const wxVector<wxDataFormat>& formats )
 {
-    wxGtkString atom_str( gdk_atom_name( format  ) );
+    if (formats.empty())
+    {
+        gtk_tree_view_unset_rows_drag_dest(GTK_TREE_VIEW(m_owner->GtkGetTreeView()));
+
+        return true;
+    }
+
+    // TODO: Use all formats, not just the first one.
+    wxGtkString atom_str( gdk_atom_name( formats[0] ) );
     m_dropTargetTargetEntryTarget = wxCharBuffer( atom_str );
 
     m_dropTargetTargetEntry.target =  m_dropTargetTargetEntryTarget.data();
@@ -4639,8 +4647,8 @@ gtk_dataview_motion_notify_callback( GtkWidget *WXUNUSED(widget),
                                      GdkEventMotion *gdk_event,
                                      wxDataViewCtrl *dv )
 {
-    int x = gdk_event->x;
-    int y = gdk_event->y;
+    int x = int(gdk_event->x);
+    int y = int(gdk_event->y);
     if (gdk_event->is_hint)
     {
 #ifdef __WXGTK3__
@@ -4931,10 +4939,10 @@ bool wxDataViewCtrl::EnableDragSource( const wxDataFormat &format )
     return m_internal->EnableDragSource( format );
 }
 
-bool wxDataViewCtrl::EnableDropTarget( const wxDataFormat &format )
+bool wxDataViewCtrl::DoEnableDropTarget( const wxVector<wxDataFormat>& formats )
 {
     wxCHECK_MSG( m_internal, false, "model must be associated before calling EnableDragTarget" );
-    return m_internal->EnableDropTarget( format );
+    return m_internal->EnableDropTarget( formats );
 }
 
 bool wxDataViewCtrl::AppendColumn( wxDataViewColumn *col )

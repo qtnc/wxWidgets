@@ -1390,9 +1390,25 @@ public:
     virtual bool EnableDragSource( const wxDataFormat &format );
 
     /**
-       Enable drop operations using the given @a format.
+        Enable drop operations using any of the specified  @a formats.
+
+        Currently this is fully implemented in the generic and native macOS
+        versions. In wxGTK only the first element of the array is used.
+
+        @note Passing empty array disables drag and drop operations completely.
+
+        @since 3.1.6
     */
-    virtual bool EnableDropTarget( const wxDataFormat &format );
+    bool EnableDropTargets(const wxVector<wxDataFormat>& formats);
+
+    /**
+        Enable drop operations using the given @a format.
+
+        See EnableDropTargets() for providing more than one supported format.
+
+        @note Since 3.1.6 wxDF_INVALID can be passed to disable drag and drop support.
+    */
+    bool EnableDropTarget( const wxDataFormat &format );
 
     /**
         Call this to ensure that the given item is visible.
@@ -3278,12 +3294,12 @@ public:
     /**
         Calls the identical method from wxDataViewTreeStore.
     */
-    const wxIcon& GetItemExpandedIcon(const wxDataViewItem& item) const;
+    wxIcon GetItemExpandedIcon(const wxDataViewItem& item) const;
 
     /**
         Calls the identical method from wxDataViewTreeStore.
     */
-    const wxIcon& GetItemIcon(const wxDataViewItem& item) const;
+    wxIcon GetItemIcon(const wxDataViewItem& item) const;
 
     /**
         Returns the item's parent.
@@ -3370,12 +3386,12 @@ public:
         Calls the identical method from wxDataViewTreeStore.
     */
     void SetItemExpandedIcon(const wxDataViewItem& item,
-                             const wxIcon& icon);
+                             const wxBitmapBundle& icon);
 
     /**
         Calls the identical method from wxDataViewTreeStore.
     */
-    void SetItemIcon(const wxDataViewItem& item, const wxIcon& icon);
+    void SetItemIcon(const wxDataViewItem& item, const wxBitmapBundle& icon);
 
     /**
         Calls the identical method from wxDataViewTreeStore.
@@ -3573,8 +3589,8 @@ public:
     */
     wxDataViewItem AppendContainer(const wxDataViewItem& parent,
                                    const wxString& text,
-                                   const wxIcon& icon = wxNullIcon,
-                                   const wxIcon& expanded = wxNullIcon,
+                                   const wxBitmapBundle& icon = wxBitmapBundle(),
+                                   const wxBitmapBundle& expanded = wxBitmapBundle(),
                                    wxClientData* data = NULL);
 
     /**
@@ -3582,7 +3598,7 @@ public:
     */
     wxDataViewItem AppendItem(const wxDataViewItem& parent,
                               const wxString& text,
-                              const wxIcon& icon = wxNullIcon,
+                              const wxBitmapBundle& icon = wxBitmapBundle(),
                               wxClientData* data = NULL);
 
     /**
@@ -3613,12 +3629,12 @@ public:
     /**
         Returns the icon to display in expanded containers.
     */
-    const wxIcon& GetItemExpandedIcon(const wxDataViewItem& item) const;
+    wxIcon GetItemExpandedIcon(const wxDataViewItem& item) const;
 
     /**
         Returns the icon of the item.
     */
-    const wxIcon& GetItemIcon(const wxDataViewItem& item) const;
+    wxIcon GetItemIcon(const wxDataViewItem& item) const;
 
     /**
         Returns the text of the item.
@@ -3637,8 +3653,8 @@ public:
     wxDataViewItem InsertContainer(const wxDataViewItem& parent,
                                    const wxDataViewItem& previous,
                                    const wxString& text,
-                                   const wxIcon& icon = wxNullIcon,
-                                   const wxIcon& expanded = wxNullIcon,
+                                   const wxBitmapBundle& icon = wxBitmapBundle(),
+                                   const wxBitmapBundle& expanded = wxBitmapBundle(),
                                    wxClientData* data = NULL);
 
     /**
@@ -3647,7 +3663,7 @@ public:
     wxDataViewItem InsertItem(const wxDataViewItem& parent,
                               const wxDataViewItem& previous,
                               const wxString& text,
-                              const wxIcon& icon = wxNullIcon,
+                              const wxBitmapBundle& icon = wxBitmapBundle(),
                               wxClientData* data = NULL);
 
     /**
@@ -3655,8 +3671,8 @@ public:
     */
     wxDataViewItem PrependContainer(const wxDataViewItem& parent,
                                     const wxString& text,
-                                    const wxIcon& icon = wxNullIcon,
-                                    const wxIcon& expanded = wxNullIcon,
+                                    const wxBitmapBundle& icon = wxBitmapBundle(),
+                                    const wxBitmapBundle& expanded = wxBitmapBundle(),
                                     wxClientData* data = NULL);
 
     /**
@@ -3664,7 +3680,7 @@ public:
     */
     wxDataViewItem PrependItem(const wxDataViewItem& parent,
                                const wxString& text,
-                               const wxIcon& icon = wxNullIcon,
+                               const wxBitmapBundle& icon = wxBitmapBundle(),
                                wxClientData* data = NULL);
 
     /**
@@ -3676,12 +3692,12 @@ public:
         Sets the expanded icon for the item.
     */
     void SetItemExpandedIcon(const wxDataViewItem& item,
-                             const wxIcon& icon);
+                             const wxBitmapBundle& icon);
 
     /**
         Sets the icon for the item.
     */
-    void SetItemIcon(const wxDataViewItem& item, const wxIcon& icon);
+    void SetItemIcon(const wxDataViewItem& item, const wxBitmapBundle& icon);
 };
 
 
@@ -3702,14 +3718,25 @@ public:
         Constructor.
     */
     wxDataViewIconText(const wxString& text = wxEmptyString,
-                       const wxIcon& icon = wxNullIcon);
+                       const wxBitmapBundle& bitmap = wxBitmapBundle());
     wxDataViewIconText(const wxDataViewIconText& other);
     //@}
 
     /**
+        Gets the associated image.
+
+        @since 3.1.6
+     */
+    const wxBitmapBundle& GetBitmapBundle() const;
+
+    /**
         Gets the icon.
+
+        This function can only return the icon in the size appropriate for the
+        standard 100% DPI scaling, use GetBitmapBundle() to retrieve image
+        representation suitable for another DPI scaling value.
     */
-    const wxIcon& GetIcon() const;
+    wxIcon GetIcon() const;
 
     /**
         Gets the text.
@@ -3717,7 +3744,21 @@ public:
     wxString GetText() const;
 
     /**
+        Sets the associated image.
+
+        This function allows to provide several representations of the same
+        image, so that the most appropriate one for the current DPI scaling
+        could be used, and so should be preferred to SetIcon().
+
+        @since 3.1.6
+     */
+    void SetBitmapBundle(const wxBitmapBundle& bitmap);
+
+    /**
         Set the icon.
+
+        Use SetBitmapBundle() instead to allow specifying different image
+        representations for different DPI scaling values.
     */
     void SetIcon(const wxIcon& icon);
 
