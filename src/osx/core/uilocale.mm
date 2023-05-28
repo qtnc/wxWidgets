@@ -26,6 +26,7 @@
 #include "wx/osx/core/cfref.h"
 #include "wx/osx/core/cfstring.h"
 
+#import <Foundation/NSArray.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSLocale.h>
 
@@ -75,7 +76,7 @@ public:
     {
     }
 
-    ~wxUILocaleImplCF() wxOVERRIDE
+    ~wxUILocaleImplCF() override
     {
         [m_nsloc release];
     }
@@ -90,20 +91,23 @@ public:
 
         wxCFStringRef cfName(locId.GetName());
         if ( ![(NSArray*)all.get() containsObject: cfName.AsNSString()] )
-            return NULL;
+            return nullptr;
 
         auto nsloc = [NSLocale localeWithLocaleIdentifier: cfName.AsNSString()];
         if ( !nsloc )
-            return NULL;
+            return nullptr;
 
         return new wxUILocaleImplCF(nsloc);
     }
 
-    void Use() wxOVERRIDE;
-    wxString GetName() const wxOVERRIDE;
-    wxString GetInfo(wxLocaleInfo index, wxLocaleCategory cat) const wxOVERRIDE;
+    void Use() override;
+    wxString GetName() const override;
+    wxLocaleIdent GetLocaleId() const override;
+    wxString GetInfo(wxLocaleInfo index, wxLocaleCategory cat) const override;
+    wxString GetLocalizedName(wxLocaleName name, wxLocaleForm form) const override;
+    wxLayoutDirection GetLayoutDirection() const override;
     int CompareStrings(const wxString& lhs, const wxString& rhs,
-                       int flags) const wxOVERRIDE;
+                       int flags) const override;
 
 private:
     NSLocale* const m_nsloc;
@@ -127,7 +131,19 @@ wxUILocaleImplCF::Use()
 wxString
 wxUILocaleImplCF::GetName() const
 {
-    return wxCFStringRef::AsString([m_nsloc localeIdentifier]);
+    wxString name = wxCFStringRef::AsString([m_nsloc localeIdentifier]);
+
+    // Check for the special case of the "empty" system locale, see CreateStdC()
+    if ( name.empty() )
+        name = "C";
+
+    return name;
+}
+
+wxLocaleIdent
+wxUILocaleImplCF::GetLocaleId() const
+{
+    return wxLocaleIdent::FromTag(GetName());
 }
 
 wxString
@@ -136,10 +152,59 @@ wxUILocaleImplCF::GetInfo(wxLocaleInfo index, wxLocaleCategory cat) const
     return wxGetInfoFromCFLocale((CFLocaleRef)m_nsloc, index, cat);
 }
 
+wxString
+wxUILocaleImplCF::GetLocalizedName(wxLocaleName name, wxLocaleForm form) const
+{
+    NSLocale* convLocale = nullptr;
+    switch (form)
+    {
+        case wxLOCALE_FORM_NATIVE:
+            convLocale = m_nsloc;
+            break;
+        case wxLOCALE_FORM_ENGLISH:
+            convLocale = [[[NSLocale alloc] initWithLocaleIdentifier:@"en_US"] autorelease];
+            break;
+        default:
+            wxFAIL_MSG("unknown wxLocaleForm");
+            return wxString();
+    }
+
+    NSString* str = nullptr;
+    switch (name)
+    {
+        case wxLOCALE_NAME_LOCALE:
+            str = [convLocale localizedStringForLocaleIdentifier:[m_nsloc localeIdentifier]];
+            break;
+        case wxLOCALE_NAME_LANGUAGE:
+            str = [convLocale localizedStringForLanguageCode:[m_nsloc languageCode]];
+            break;
+        case wxLOCALE_NAME_COUNTRY:
+            str = [convLocale localizedStringForCountryCode:[m_nsloc countryCode]];
+            break;
+    }
+    return wxCFStringRef::AsString(str);
+}
+
+wxLayoutDirection
+wxUILocaleImplCF::GetLayoutDirection() const
+{
+    NSLocaleLanguageDirection layoutDirection = [NSLocale characterDirectionForLanguage:[m_nsloc languageCode]];
+    if (layoutDirection == NSLocaleLanguageDirectionLeftToRight)
+        return wxLayout_LeftToRight;
+    else if (layoutDirection == NSLocaleLanguageDirectionRightToLeft)
+        return wxLayout_RightToLeft;
+    return wxLayout_Default;
+}
+
 /* static */
 wxUILocaleImpl* wxUILocaleImpl::CreateStdC()
 {
-    return wxUILocaleImplCF::Create(wxLocaleIdent().Language("C"));
+    // This is an "empty" locale, but it seems to correspond rather well to the
+    // "C" locale under POSIX systems and using localeWithLocaleIdentifier:@"C"
+    // wouldn't be much better as we'd still need a hack for it in GetName()
+    // because the locale names are always converted to lower case, while we
+    // really want to return "C" rather than "c" as the name of this one.
+    return new wxUILocaleImplCF([NSLocale systemLocale]);
 }
 
 /* static */
@@ -152,6 +217,19 @@ wxUILocaleImpl* wxUILocaleImpl::CreateUserDefault()
 wxUILocaleImpl* wxUILocaleImpl::CreateForLocale(const wxLocaleIdent& locId)
 {
     return wxUILocaleImplCF::Create(locId);
+}
+
+/* static */
+wxVector<wxString> wxUILocaleImpl::GetPreferredUILanguages()
+{
+    wxVector<wxString> preferred;
+    NSArray* preferredLangs = [NSLocale preferredLanguages];
+    NSUInteger count = preferredLangs.count;
+
+    for (NSUInteger j = 0; j < count; ++j)
+        preferred.push_back(wxCFStringRef::AsString(preferredLangs[j]));
+
+    return preferred;
 }
 
 int

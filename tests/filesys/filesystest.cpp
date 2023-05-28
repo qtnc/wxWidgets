@@ -22,7 +22,8 @@
 #if wxUSE_FILESYSTEM
 
 #include "wx/fs_mem.h"
-#include "wx/scopedptr.h"
+
+#include <memory>
 
 // ----------------------------------------------------------------------------
 // helpers
@@ -39,9 +40,9 @@ public:
     wxString RightLocation(const wxString& p) { return GetRightLocation(p); }
     wxString Anchor(const wxString& p) { return GetAnchor(p); }
 
-    bool CanOpen(const wxString& WXUNUSED(url)) wxOVERRIDE { return false; }
+    bool CanOpen(const wxString& WXUNUSED(url)) override { return false; }
     wxFSFile *OpenFile(wxFileSystem& WXUNUSED(fs),
-                       const wxString& WXUNUSED(url)) wxOVERRIDE { return NULL; }
+                       const wxString& WXUNUSED(url)) override { return nullptr; }
 
 
 };
@@ -196,7 +197,7 @@ TEST_CASE("wxFileSystem::MemoryFSHandler", "[filesys][memoryfshandler][find]")
         }
 
     private:
-        wxScopedPtr<wxMemoryFSHandler> const m_handler;
+        std::unique_ptr<wxMemoryFSHandler> const m_handler;
     } autoMemoryFSHandler;
 
     wxMemoryFSHandler::AddFile("foo.txt", "foo contents");

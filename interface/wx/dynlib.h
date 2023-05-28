@@ -56,6 +56,14 @@ public:
 };
 
 
+/**
+    A vector of wxDynamicLibraryDetails.
+
+    This class is actually a legacy container (see @ref overview_container for
+    more details), but it can, and should be, handled as just a vector of
+    wxDynamicLibraryDetails objects in the application code.
+*/
+using wxDynamicLibraryDetailsArray = std::vector<wxDynamicLibraryDetails>;
 
 /**
     Dynamic library category used with wxDynamicLibrary::CanonicalizeName().
@@ -232,7 +240,7 @@ public:
 
         @since 3.1.0
     */
-    static void* GetModuleFromAddress(const void* addr, wxString* path = NULL);
+    static void* GetModuleFromAddress(const void* addr, wxString* path = nullptr);
 
     /**
         Loads DLL with the given @a name into memory. The @a flags argument can
@@ -268,7 +276,7 @@ public:
 // ============================================================================
 
 /** @addtogroup group_funcmacro_misc */
-//@{
+///@{
 
 /**
     When loading a function from a DLL you always have to cast the returned
@@ -293,5 +301,5 @@ public:
 */
 #define wxDYNLIB_FUNCTION(type, name, dynlib)
 
-//@}
+///@}
 

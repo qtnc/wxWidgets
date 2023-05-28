@@ -22,8 +22,9 @@
 #include "textentrytest.h"
 #include "testableframe.h"
 
-#include "wx/scopedptr.h"
 #include "wx/uiaction.h"
+
+#include <memory>
 
 void TextEntryTestCase::SetValue()
 {
@@ -475,7 +476,7 @@ private:
         wxYield();
 
         // Note that clicking it is still not enough to give it focus with
-        // wxGTK neither, so we still need to call SetFocus() nevertheless: but
+        // wxGTK either, so we still need to call SetFocus() nevertheless: but
         // now it works.
         m_control->SetFocus();
 
@@ -532,7 +533,7 @@ void TestProcessEnter(const TextLikeControlCreator& controlCreator)
 
     SECTION("Without wxTE_PROCESS_ENTER but with wxTE_MULTILINE")
     {
-        wxScopedPtr<TextLikeControlCreator>
+        std::unique_ptr<TextLikeControlCreator>
             multiLineCreator(controlCreator.CloneAsMultiLine());
         if ( !multiLineCreator )
             return;
@@ -544,7 +545,7 @@ void TestProcessEnter(const TextLikeControlCreator& controlCreator)
 
     SECTION("With wxTE_PROCESS_ENTER and wxTE_MULTILINE but skipping")
     {
-        wxScopedPtr<TextLikeControlCreator>
+        std::unique_ptr<TextLikeControlCreator>
             multiLineCreator(controlCreator.CloneAsMultiLine());
         if ( !multiLineCreator )
             return;
@@ -556,7 +557,7 @@ void TestProcessEnter(const TextLikeControlCreator& controlCreator)
 
     SECTION("With wxTE_PROCESS_ENTER and wxTE_MULTILINE without skipping")
     {
-        wxScopedPtr<TextLikeControlCreator>
+        std::unique_ptr<TextLikeControlCreator>
             multiLineCreator(controlCreator.CloneAsMultiLine());
         if ( !multiLineCreator )
             return;

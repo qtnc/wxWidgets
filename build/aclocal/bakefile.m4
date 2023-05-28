@@ -44,7 +44,7 @@ AC_DEFUN([AC_BAKEFILE_GNUMAKE],
     AC_CACHE_CHECK([if make is GNU make], bakefile_cv_prog_makeisgnu,
     [
         if ( ${SHELL-sh} -c "${MAKE-make} --version" 2> /dev/null |
-                egrep -s GNU > /dev/null); then
+                grep -sE GNU > /dev/null); then
             bakefile_cv_prog_makeisgnu="yes"
         else
             bakefile_cv_prog_makeisgnu="no"
@@ -710,7 +710,7 @@ AC_DEFUN([AC_BAKEFILE],
     AC_SUBST(OBJCXXFLAGS)
 
 
-    BAKEFILE_BAKEFILE_M4_VERSION="0.2.12"
+    BAKEFILE_BAKEFILE_M4_VERSION="0.2.13"
 
     dnl includes autoconf_inc.m4:
     $1

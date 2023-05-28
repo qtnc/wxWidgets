@@ -35,6 +35,7 @@
 #include "wx/msw/wrapcctl.h"
 #include "wx/msw/private.h"
 #include "wx/msw/private/customdraw.h"
+#include "wx/msw/private/darkmode.h"
 #include "wx/msw/private/winstyle.h"
 
 #ifndef HDM_SETBITMAPMARGIN
@@ -48,36 +49,6 @@
 
 // from src/msw/listctrl.cpp
 extern int WXDLLIMPEXP_CORE wxMSWGetColumnClicked(NMHDR *nmhdr, POINT *ptClick);
-
-// ----------------------------------------------------------------------------
-// wxMSWHeaderCtrlCustomDraw: our custom draw helper
-// ----------------------------------------------------------------------------
-
-class wxMSWHeaderCtrlCustomDraw : public wxMSWImpl::CustomDraw
-{
-public:
-    wxMSWHeaderCtrlCustomDraw()
-    {
-    }
-
-    // Make this field public to let wxHeaderCtrl update it directly when its
-    // attributes change.
-    wxItemAttr m_attr;
-
-private:
-    virtual bool HasCustomDrawnItems() const wxOVERRIDE
-    {
-        // We only exist if the header does need to be custom drawn.
-        return true;
-    }
-
-    virtual const wxItemAttr*
-    GetItemAttr(DWORD_PTR WXUNUSED(dwItemSpec)) const wxOVERRIDE
-    {
-        // We use the same attribute for all items for now.
-        return &m_attr;
-    }
-};
 
 // ----------------------------------------------------------------------------
 // wxMSWHeaderCtrl: the native header control
@@ -101,9 +72,9 @@ public:
     virtual ~wxMSWHeaderCtrl();
 
     // Override to implement colours support via custom drawing.
-    virtual bool SetBackgroundColour(const wxColour& colour) wxOVERRIDE;
-    virtual bool SetForegroundColour(const wxColour& colour) wxOVERRIDE;
-    virtual bool SetFont(const wxFont& font) wxOVERRIDE;
+    virtual bool SetBackgroundColour(const wxColour& colour) override;
+    virtual bool SetForegroundColour(const wxColour& colour) override;
+    virtual bool SetFont(const wxFont& font) override;
 
     // The implementation of wxHeaderCtrlBase virtual functions
     void SetCount(unsigned int count);
@@ -117,16 +88,21 @@ public:
 
 protected:
     // override wxWindow methods which must be implemented by a new control
-    virtual wxSize DoGetBestSize() const wxOVERRIDE;
+    virtual wxSize DoGetBestSize() const override;
     virtual void DoSetSize(int x, int y,
                            int width, int height,
-                           int sizeFlags = wxSIZE_AUTO) wxOVERRIDE;
-    virtual void MSWUpdateFontOnDPIChange(const wxSize& newDPI) wxOVERRIDE;
+                           int sizeFlags = wxSIZE_AUTO) override;
+    virtual void MSWUpdateFontOnDPIChange(const wxSize& newDPI) override;
+
+    virtual bool MSWGetDarkModeSupport(MSWDarkModeSupport& support) const override;
+
+    // This function can be used as event handle for wxEVT_DPI_CHANGED event.
+    void WXHandleDPIChanged(wxDPIChangedEvent& event);
 
 private:
     // override MSW-specific methods needed for new control
-    virtual WXDWORD MSWGetStyle(long style, WXDWORD *exstyle) const wxOVERRIDE;
-    virtual bool MSWOnNotify(int idCtrl, WXLPARAM lParam, WXLPARAM *result) wxOVERRIDE;
+    virtual WXDWORD MSWGetStyle(long style, WXDWORD *exstyle) const override;
+    virtual bool MSWOnNotify(int idCtrl, WXLPARAM lParam, WXLPARAM *result) override;
 
     // common part of all ctors
     void Init();
@@ -187,7 +163,7 @@ private:
     // doesn't know about them and so we can't use Header_GetOrderArray()
     wxArrayInt m_colIndices;
 
-    // the image list: initially NULL, created on demand
+    // the image list: initially nullptr, created on demand
     wxImageList *m_imageList;
 
     // the offset of the window used to emulate scrolling it
@@ -199,7 +175,7 @@ private:
     // a column is currently being resized
     bool m_isColBeingResized;
 
-    // the custom draw helper: initially NULL, created on demand, use
+    // the custom draw helper: initially nullptr, created on demand, use
     // GetCustomDraw() to do it
     wxMSWHeaderCtrlCustomDraw *m_customDraw;
 };
@@ -217,11 +193,13 @@ extern WXDLLIMPEXP_DATA_CORE(const char) wxMSWHeaderCtrlNameStr[] = "wxMSWHeader
 void wxMSWHeaderCtrl::Init()
 {
     m_numColumns = 0;
-    m_imageList = NULL;
+    m_imageList = nullptr;
     m_scrollOffset = 0;
     m_colBeingDragged = -1;
     m_isColBeingResized = false;
-    m_customDraw = NULL;
+    m_customDraw = nullptr;
+
+    Bind(wxEVT_DPI_CHANGED, &wxMSWHeaderCtrl::WXHandleDPIChanged, this);
 }
 
 bool wxMSWHeaderCtrl::Create(wxWindow *parent,
@@ -240,6 +218,12 @@ bool wxMSWHeaderCtrl::Create(wxWindow *parent,
 
     if ( !MSWCreateControl(WC_HEADER, wxT(""), pos, size) )
         return false;
+
+    if ( wxMSWDarkMode::IsActive() )
+    {
+        m_customDraw = new wxMSWHeaderCtrlCustomDraw();
+        m_customDraw->UseHeaderThemeColors(GetHwnd());
+    }
 
     // special hack for margins when using comctl32.dll v6 or later: the
     // default margin is too big and results in label truncation when the
@@ -269,6 +253,13 @@ WXDWORD wxMSWHeaderCtrl::MSWGetStyle(long style, WXDWORD *exstyle) const
     msStyle |= HDS_HORZ | HDS_BUTTONS | HDS_FULLDRAG | HDS_HOTTRACK;
 
     return msStyle;
+}
+
+bool wxMSWHeaderCtrl::MSWGetDarkModeSupport(MSWDarkModeSupport& support) const
+{
+    support.themeName = L"ItemsView";
+
+    return true;
 }
 
 wxMSWHeaderCtrl::~wxMSWHeaderCtrl()
@@ -330,6 +321,18 @@ void wxMSWHeaderCtrl::MSWUpdateFontOnDPIChange(const wxSize& newDPI)
     {
         customDraw->m_attr.SetFont(m_font);
     }
+}
+
+void wxMSWHeaderCtrl::WXHandleDPIChanged(wxDPIChangedEvent& event)
+{
+    delete m_imageList;
+    m_imageList = nullptr;
+    for (unsigned int i = 0; i < m_numColumns; ++i)
+    {
+        UpdateHeader(i);
+    }
+
+    event.Skip();
 }
 
 // ----------------------------------------------------------------------------
@@ -439,39 +442,33 @@ void wxMSWHeaderCtrl::DoInsertItem(const wxHeaderColumn& col, unsigned int idx)
     // notice that we need to store the string we use the pointer to until we
     // pass it to the control
     hdi.mask |= HDI_TEXT;
-    wxWxCharBuffer buf = col.GetTitle().t_str();
+    wxWCharBuffer buf = col.GetTitle().t_str();
     hdi.pszText = buf.data();
     hdi.cchTextMax = wxStrlen(buf);
 
-    const wxBitmap bmp = col.GetBitmap();
-    if ( bmp.IsOk() )
+    const wxBitmapBundle& bb = col.GetBitmapBundle();
+    if ( bb.IsOk() )
     {
         hdi.mask |= HDI_IMAGE;
 
         if ( HasFlag(wxHD_BITMAP_ON_RIGHT) )
             hdi.fmt |= HDF_BITMAP_ON_RIGHT;
 
-        const int bmpWidth = bmp.GetWidth(),
-                  bmpHeight = bmp.GetHeight();
-
+        wxSize bmpSize;
         if ( !m_imageList )
         {
-            m_imageList = new wxImageList(bmpWidth, bmpHeight);
+            bmpSize = bb.GetPreferredBitmapSizeFor(this);
+            m_imageList = new wxImageList(bmpSize.x, bmpSize.y);
             (void) // suppress mingw32 warning about unused computed value
             Header_SetImageList(GetHwnd(), GetHimagelistOf(m_imageList));
         }
         else // already have an image list
         {
-            // check that all bitmaps we use have the same size
-            int imageWidth,
-                imageHeight;
-            m_imageList->GetSize(0, imageWidth, imageHeight);
-
-            wxASSERT_MSG( imageWidth == bmpWidth && imageHeight == bmpHeight,
-                          "all column bitmaps must have the same size" );
+            // use the same size for all bitmaps
+            bmpSize = m_imageList->GetSize();
         }
 
-        m_imageList->Add(bmp);
+        m_imageList->Add(bb.GetBitmap(bmpSize));
         hdi.iImage = m_imageList->GetImageCount() - 1;
     }
 
@@ -663,15 +660,15 @@ wxMSWHeaderCtrlCustomDraw* wxMSWHeaderCtrl::GetCustomDraw()
     // custom font, the native control handles the font just fine on its own,
     // so if our custom colours were reset, don't bother with custom drawing
     // any longer.
-    if ( !m_hasBgCol && !m_hasFgCol )
+    if ( !m_hasBgCol && !m_hasFgCol && !wxMSWDarkMode::IsActive() )
     {
         if ( m_customDraw )
         {
             delete m_customDraw;
-            m_customDraw = NULL;
+            m_customDraw = nullptr;
         }
 
-        return NULL;
+        return nullptr;
     }
 
     // We do have at least one custom colour, so enable custom drawing.
@@ -1026,7 +1023,7 @@ bool wxMSWHeaderCtrl::MSWOnNotify(int idCtrl, WXLPARAM lParam, WXLPARAM *result)
 
 void wxHeaderCtrl::Init()
 {
-    m_nativeControl = NULL;
+    m_nativeControl = nullptr;
 }
 
 bool wxHeaderCtrl::Create(wxWindow *parent,
@@ -1062,7 +1059,7 @@ bool wxHeaderCtrl::Create(wxWindow *parent,
 
 void wxHeaderCtrl::OnSize(wxSizeEvent& WXUNUSED(event))
 {
-    if (m_nativeControl != NULL) // check whether initialisation has been done
+    if (m_nativeControl != nullptr) // check whether initialisation has been done
     {
         int cw, ch;
         GetClientSize(&cw, &ch);

@@ -34,6 +34,7 @@
 
 #include "testimage.h"
 
+#include <memory>
 
 #define CHECK_EQUAL_COLOUR_RGB(c1, c2) \
     CHECK( (int)c1.Red()   == (int)c2.Red() ); \
@@ -67,68 +68,25 @@ struct testData {
 };
 
 
-// ----------------------------------------------------------------------------
-// test class
-// ----------------------------------------------------------------------------
-
-class ImageTestCase : public CppUnit::TestCase
+class ImageHandlersInit
 {
 public:
-    ImageTestCase();
-    ~ImageTestCase();
+    ImageHandlersInit();
 
 private:
-    CPPUNIT_TEST_SUITE( ImageTestCase );
-        CPPUNIT_TEST( LoadFromSocketStream );
-        CPPUNIT_TEST( LoadFromZipStream );
-        CPPUNIT_TEST( LoadFromFile );
-        CPPUNIT_TEST( SizeImage );
-        CPPUNIT_TEST( CompareLoadedImage );
-        CPPUNIT_TEST( CompareSavedImage );
-        CPPUNIT_TEST( SavePNG );
-#if wxUSE_LIBTIFF
-        CPPUNIT_TEST( SaveTIFF );
-#endif // wxUSE_LIBTIFF
-        CPPUNIT_TEST( ReadCorruptedTGA );
-#if wxUSE_GIF
-        CPPUNIT_TEST( SaveAnimatedGIF );
-        CPPUNIT_TEST( GIFComment );
-#endif // wxUSE_GIF
-        CPPUNIT_TEST( DibPadding );
-        CPPUNIT_TEST( BMPFlippingAndRLECompression );
-        CPPUNIT_TEST( ScaleCompare );
-        CPPUNIT_TEST( CreateBitmapFromCursor );
-    CPPUNIT_TEST_SUITE_END();
+    static bool ms_initialized;
 
-    void LoadFromSocketStream();
-    void LoadFromZipStream();
-    void LoadFromFile();
-    void SizeImage();
-    void CompareLoadedImage();
-    void CompareSavedImage();
-    void SavePNG();
-#if wxUSE_LIBTIFF
-    void SaveTIFF();
-#endif // wxUSE_LIBTIFF
-    void ReadCorruptedTGA();
-#if wxUSE_GIF
-    void SaveAnimatedGIF();
-    void GIFComment();
-#endif // wxUSE_GIF
-    void DibPadding();
-    void BMPFlippingAndRLECompression();
-    void ScaleCompare();
-    void CreateBitmapFromCursor();
-
-    wxDECLARE_NO_COPY_CLASS(ImageTestCase);
+    wxDECLARE_NO_COPY_CLASS(ImageHandlersInit);
 };
 
-CPPUNIT_TEST_SUITE_REGISTRATION( ImageTestCase );
-CPPUNIT_TEST_SUITE_NAMED_REGISTRATION( ImageTestCase, "ImageTestCase" );
+bool ImageHandlersInit::ms_initialized = false;
 
-ImageTestCase::ImageTestCase()
+ImageHandlersInit::ImageHandlersInit()
 {
-    wxSocketBase::Initialize();
+    if ( ms_initialized )
+        return;
+
+    ms_initialized = true;
 
     // the formats we're going to test:
     wxImage::AddHandler(new wxICOHandler);
@@ -149,117 +107,96 @@ ImageTestCase::ImageTestCase()
 #endif // wxUSE_LIBTIFF
 }
 
-ImageTestCase::~ImageTestCase()
-{
-    wxSocketBase::Shutdown();
-}
-
-void ImageTestCase::LoadFromFile()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::LoadFromFile", "[image]")
 {
     wxImage img;
     for (unsigned int i=0; i<WXSIZEOF(g_testfiles); i++)
-        CPPUNIT_ASSERT(img.LoadFile(g_testfiles[i].file));
+    {
+        const wxString file(g_testfiles[i].file);
+        INFO("Loading " << file);
+        CHECK(img.LoadFile(file));
+    }
+
+    CHECK(img.LoadFile("image/bitfields.bmp", wxBITMAP_TYPE_BMP));
 }
 
-void ImageTestCase::LoadFromSocketStream()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::LoadFromSocketStream", "[image]")
 {
-    if (!IsNetworkAvailable())      // implemented in test.cpp
-    {
-        wxLogWarning("No network connectivity; skipping the "
-                     "ImageTestCase::LoadFromSocketStream test unit.");
+    // This test doesn't work any more even using the IP address below as the
+    // HTTP server now redirects everything to HTTPs, so skip it for now unless
+    // a test URL pointing to a PNG image is defined.
+    wxString urlStr;
+    if ( !wxGetEnv("WX_TEST_IMAGE_URL_PNG", &urlStr) )
         return;
-    }
 
-    struct {
-        const char* url;
-        wxBitmapType type;
-    } testData[] =
-    {
-        { "http://www.wxwidgets.org/assets/img/header-logo.png", wxBITMAP_TYPE_PNG },
-        { "http://www.wxwidgets.org/assets/ico/favicon-1.ico", wxBITMAP_TYPE_ICO }
-    };
+    wxSocketInitializer socketInit;
 
-    for (unsigned int i=0; i<WXSIZEOF(testData); i++)
-    {
-        wxURL url(testData[i].url);
-        WX_ASSERT_EQUAL_MESSAGE
-        (
-            ("Constructing URL \"%s\" failed.", testData[i].url),
-            wxURL_NOERR,
-            url.GetError()
-        );
+    wxURL url(urlStr);
+    REQUIRE( url.GetError() == wxURL_NOERR );
 
-        wxInputStream *in_stream = url.GetInputStream();
-        WX_ASSERT_MESSAGE
-        (
-            ("Opening URL \"%s\" failed.", testData[i].url),
-            in_stream && in_stream->IsOk()
-        );
+    std::unique_ptr<wxInputStream> in_stream(url.GetInputStream());
+    REQUIRE( in_stream );
+    REQUIRE( in_stream->IsOk() );
 
-        wxImage img;
+    wxImage img;
 
-        // NOTE: it's important to inform wxImage about the type of the image being
-        //       loaded otherwise it will try to autodetect the format, but that
-        //       requires a seekable stream!
-        WX_ASSERT_MESSAGE
-        (
-            ("Loading image from \"%s\" failed.", testData[i].url),
-            img.LoadFile(*in_stream, testData[i].type)
-        );
-
-        delete in_stream;
-    }
+    // NOTE: it's important to inform wxImage about the type of the image being
+    //       loaded otherwise it will try to autodetect the format, but that
+    //       requires a seekable stream!
+    CHECK( img.LoadFile(*in_stream, wxBITMAP_TYPE_PNG) );
 }
 
-void ImageTestCase::LoadFromZipStream()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::LoadFromZipStream", "[image]")
 {
     for (unsigned int i=0; i<WXSIZEOF(g_testfiles); i++)
     {
-        switch (g_testfiles[i].type)
+        SECTION(std::string("Testing file ") + g_testfiles[i].file)
         {
-            case wxBITMAP_TYPE_XPM:
-            case wxBITMAP_TYPE_GIF:
-            case wxBITMAP_TYPE_PCX:
-            case wxBITMAP_TYPE_TGA:
-            case wxBITMAP_TYPE_TIFF:
-            continue;       // skip testing those wxImageHandlers which cannot
-                            // load data from non-seekable streams
+            switch (g_testfiles[i].type)
+            {
+                case wxBITMAP_TYPE_XPM:
+                case wxBITMAP_TYPE_GIF:
+                case wxBITMAP_TYPE_PCX:
+                case wxBITMAP_TYPE_TGA:
+                case wxBITMAP_TYPE_TIFF:
+                continue;       // skip testing those wxImageHandlers which cannot
+                                // load data from non-seekable streams
 
-            default:
-                ; // proceed
+                default:
+                    ; // proceed
+            }
+
+            // compress the test file on the fly:
+            wxMemoryOutputStream memOut;
+            {
+                wxFileInputStream file(g_testfiles[i].file);
+                REQUIRE(file.IsOk());
+
+                wxZlibOutputStream compressFilter(memOut, 5, wxZLIB_GZIP);
+                REQUIRE(compressFilter.IsOk());
+
+                file.Read(compressFilter);
+                REQUIRE(file.GetLastError() == wxSTREAM_EOF);
+            }
+
+            // now fetch the compressed memory to wxImage, decompressing it on the fly; this
+            // allows us to test loading images from non-seekable streams other than socket streams
+            wxMemoryInputStream memIn(memOut);
+            REQUIRE(memIn.IsOk());
+            wxZlibInputStream decompressFilter(memIn, wxZLIB_GZIP);
+            REQUIRE(decompressFilter.IsOk());
+
+            wxImage img;
+
+            // NOTE: it's important to inform wxImage about the type of the image being
+            //       loaded otherwise it will try to autodetect the format, but that
+            //       requires a seekable stream!
+            CHECK( img.LoadFile(decompressFilter, g_testfiles[i].type) );
         }
-
-        // compress the test file on the fly:
-        wxMemoryOutputStream memOut;
-        {
-            wxFileInputStream file(g_testfiles[i].file);
-            CPPUNIT_ASSERT(file.IsOk());
-
-            wxZlibOutputStream compressFilter(memOut, 5, wxZLIB_GZIP);
-            CPPUNIT_ASSERT(compressFilter.IsOk());
-
-            file.Read(compressFilter);
-            CPPUNIT_ASSERT(file.GetLastError() == wxSTREAM_EOF);
-        }
-
-        // now fetch the compressed memory to wxImage, decompressing it on the fly; this
-        // allows us to test loading images from non-seekable streams other than socket streams
-        wxMemoryInputStream memIn(memOut);
-        CPPUNIT_ASSERT(memIn.IsOk());
-        wxZlibInputStream decompressFilter(memIn, wxZLIB_GZIP);
-        CPPUNIT_ASSERT(decompressFilter.IsOk());
-
-        wxImage img;
-
-        // NOTE: it's important to inform wxImage about the type of the image being
-        //       loaded otherwise it will try to autodetect the format, but that
-        //       requires a seekable stream!
-        WX_ASSERT_MESSAGE(("Could not load file type '%d' after it was zipped", g_testfiles[i].type),
-                          img.LoadFile(decompressFilter, g_testfiles[i].type));
     }
 }
 
-void ImageTestCase::SizeImage()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::SizeImage", "[image]")
 {
    // Test the wxImage::Size() function which takes a rectangle from source and
    // places it in a new image at a given position. This test checks, if the
@@ -869,13 +806,13 @@ void ImageTestCase::SizeImage()
    }
 }
 
-void ImageTestCase::CompareLoadedImage()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::CompareLoadedImage", "[image]")
 {
     wxImage expected8("horse.xpm");
-    CPPUNIT_ASSERT( expected8.IsOk() );
+    REQUIRE( expected8.IsOk() );
 
     wxImage expected24("horse.png");
-    CPPUNIT_ASSERT( expected24.IsOk() );
+    REQUIRE( expected24.IsOk() );
 
     for (size_t i=0; i<WXSIZEOF(g_testfiles); i++)
     {
@@ -909,7 +846,7 @@ enum
 
 static
 void CompareImage(const wxImageHandler& handler, const wxImage& image,
-    int properties = 0, const wxImage *compareTo = NULL)
+    int properties = 0, const wxImage *compareTo = nullptr)
 {
     wxBitmapType type = handler.GetType();
 
@@ -950,25 +887,25 @@ void CompareImage(const wxImageHandler& handler, const wxImage& image,
         return;
     }
 
-    wxMemoryInputStream memIn(memOut);
-    CPPUNIT_ASSERT(memIn.IsOk());
-
-    wxImage actual(memIn);
-    CPPUNIT_ASSERT(actual.IsOk());
-
-    const wxImage *expected = compareTo ? compareTo : &image;
-
     unsigned bitsPerPixel = testPalette ? 8 : (testAlpha ? 32 : 24);
     wxINFO_FMT("Compare test '%s (%d-bit)' for saving",
                handler.GetExtension(), bitsPerPixel);
+
+    wxMemoryInputStream memIn(memOut);
+    REQUIRE(memIn.IsOk());
+
+    wxImage actual(memIn);
+    REQUIRE(actual.IsOk());
+
+    const wxImage *expected = compareTo ? compareTo : &image;
     CHECK_THAT(actual, RGBSameAs(*expected));
 
 #if wxUSE_PALETTE
-    CPPUNIT_ASSERT(actual.HasPalette()
+    REQUIRE(actual.HasPalette()
         == (testPalette || type == wxBITMAP_TYPE_XPM));
 #endif
 
-    CPPUNIT_ASSERT( actual.HasAlpha() == testAlpha);
+    REQUIRE( actual.HasAlpha() == testAlpha);
 
     if (!testAlpha)
     {
@@ -995,11 +932,11 @@ static void SetAlpha(wxImage *image)
     }
 }
 
-void ImageTestCase::CompareSavedImage()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::CompareSavedImage", "[image]")
 {
     wxImage expected24("horse.png");
-    CPPUNIT_ASSERT( expected24.IsOk() );
-    CPPUNIT_ASSERT( !expected24.HasAlpha() );
+    REQUIRE( expected24.IsOk() );
+    REQUIRE( !expected24.HasAlpha() );
 
     wxImage expected8 = expected24.ConvertToGreyscale();
 
@@ -1034,12 +971,12 @@ void ImageTestCase::CompareSavedImage()
     }
 }
 
-void ImageTestCase::SavePNG()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::SavePNG", "[image]")
 {
     wxImage expected24("horse.png");
-    CPPUNIT_ASSERT( expected24.IsOk() );
+    REQUIRE( expected24.IsOk() );
 #if wxUSE_PALETTE
-    CPPUNIT_ASSERT( !expected24.HasPalette() );
+    REQUIRE( !expected24.HasPalette() );
 #endif // #if wxUSE_PALETTE
 
     wxImage expected8 = expected24.ConvertToGreyscale();
@@ -1058,9 +995,9 @@ void ImageTestCase::SavePNG()
         expected8, wxIMAGE_HAVE_PALETTE);
 
 
-    CPPUNIT_ASSERT( expected8.LoadFile("horse.gif") );
+    REQUIRE( expected8.LoadFile("horse.gif") );
 #if wxUSE_PALETTE
-    CPPUNIT_ASSERT( expected8.HasPalette() );
+    REQUIRE( expected8.HasPalette() );
 #endif // #if wxUSE_PALETTE
 
     CompareImage(*wxImage::FindHandler(wxBITMAP_TYPE_PNG),
@@ -1108,8 +1045,10 @@ void ImageTestCase::SavePNG()
 
 #if wxUSE_LIBTIFF
 static void TestTIFFImage(const wxString& option, int value,
-    const wxImage *compareImage = NULL)
+    const wxImage *compareImage = nullptr)
 {
+    INFO("Using option " << option << "=" << value);
+
     wxImage image;
     if (compareImage)
     {
@@ -1119,29 +1058,25 @@ static void TestTIFFImage(const wxString& option, int value,
     {
         (void) image.LoadFile("horse.png");
     }
-    CPPUNIT_ASSERT( image.IsOk() );
+    REQUIRE( image.IsOk() );
 
     wxMemoryOutputStream memOut;
     image.SetOption(option, value);
 
-    CPPUNIT_ASSERT(image.SaveFile(memOut, wxBITMAP_TYPE_TIFF));
+    REQUIRE(image.SaveFile(memOut, wxBITMAP_TYPE_TIFF));
 
     wxMemoryInputStream memIn(memOut);
-    CPPUNIT_ASSERT(memIn.IsOk());
+    REQUIRE(memIn.IsOk());
 
     wxImage savedImage(memIn);
-    CPPUNIT_ASSERT(savedImage.IsOk());
+    REQUIRE(savedImage.IsOk());
 
-    WX_ASSERT_EQUAL_MESSAGE(("While checking for option %s", option),
-        true, savedImage.HasOption(option));
-
-    WX_ASSERT_EQUAL_MESSAGE(("While testing for %s", option),
-        value, savedImage.GetOptionInt(option));
-
-    WX_ASSERT_EQUAL_MESSAGE(("HasAlpha() not equal"), image.HasAlpha(), savedImage.HasAlpha());
+    CHECK( savedImage.HasOption(option) );
+    CHECK( savedImage.GetOptionInt(option) == value );
+    CHECK( savedImage.HasAlpha() == image.HasAlpha() );
 }
 
-void ImageTestCase::SaveTIFF()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::SaveTIFF", "[image]")
 {
     TestTIFFImage(wxIMAGE_OPTION_TIFF_BITSPERSAMPLE, 1);
     TestTIFFImage(wxIMAGE_OPTION_TIFF_SAMPLESPERPIXEL, 1);
@@ -1149,7 +1084,7 @@ void ImageTestCase::SaveTIFF()
     TestTIFFImage(wxIMAGE_OPTION_TIFF_PHOTOMETRIC, 1/*PHOTOMETRIC_MINISBLACK*/);
 
     wxImage alphaImage("horse.png");
-    CPPUNIT_ASSERT( alphaImage.IsOk() );
+    REQUIRE( alphaImage.IsOk() );
     SetAlpha(&alphaImage);
 
     // RGB with alpha
@@ -1164,7 +1099,7 @@ void ImageTestCase::SaveTIFF()
 }
 #endif // wxUSE_LIBTIFF
 
-void ImageTestCase::ReadCorruptedTGA()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::ReadCorruptedTGA", "[image]")
 {
     static unsigned char corruptTGA[18+1+3] =
     {
@@ -1186,10 +1121,10 @@ void ImageTestCase::ReadCorruptedTGA()
     };
 
     wxMemoryInputStream memIn(corruptTGA, WXSIZEOF(corruptTGA));
-    CPPUNIT_ASSERT(memIn.IsOk());
+    REQUIRE(memIn.IsOk());
 
     wxImage tgaImage;
-    CPPUNIT_ASSERT( !tgaImage.LoadFile(memIn) );
+    REQUIRE( !tgaImage.LoadFile(memIn) );
 
 
     /*
@@ -1197,39 +1132,39 @@ void ImageTestCase::ReadCorruptedTGA()
     follow 127+1 uncompressed pixels (while we only should have 1 in total).
     */
     corruptTGA[18] = 0x7f;
-    CPPUNIT_ASSERT( !tgaImage.LoadFile(memIn) );
+    REQUIRE( !tgaImage.LoadFile(memIn) );
 }
 
 #if wxUSE_GIF
 
-void ImageTestCase::SaveAnimatedGIF()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::SaveAnimatedGIF", "[image]")
 {
 #if wxUSE_PALETTE
     wxImage image("horse.gif");
-    CPPUNIT_ASSERT( image.IsOk() );
+    REQUIRE( image.IsOk() );
 
     wxImageArray images;
-    images.Add(image);
+    images.push_back(image);
     for (int i = 0; i < 4-1; ++i)
     {
-        images.Add( images[i].Rotate90() );
+        images.push_back( images[i].Rotate90() );
 
         images[i+1].SetPalette(images[0].GetPalette());
     }
 
     wxMemoryOutputStream memOut;
-    CPPUNIT_ASSERT( wxGIFHandler().SaveAnimation(images, &memOut) );
+    REQUIRE( wxGIFHandler().SaveAnimation(images, &memOut) );
 
     wxGIFHandler handler;
     wxMemoryInputStream memIn(memOut);
-    CPPUNIT_ASSERT(memIn.IsOk());
+    REQUIRE(memIn.IsOk());
     const int imageCount = handler.GetImageCount(memIn);
-    CPPUNIT_ASSERT_EQUAL(4, imageCount);
+    CHECK( imageCount == 4 );
 
     for (int i = 0; i < imageCount; ++i)
     {
         wxFileOffset pos = memIn.TellI();
-        CPPUNIT_ASSERT( handler.LoadFile(&image, memIn, true, i) );
+        REQUIRE( handler.LoadFile(&image, memIn, true, i) );
         memIn.SeekI(pos);
 
         wxINFO_FMT("Compare test for GIF frame number %d failed", i);
@@ -1244,21 +1179,20 @@ static void TestGIFComment(const wxString& comment)
 
     image.SetOption(wxIMAGE_OPTION_GIF_COMMENT, comment);
     wxMemoryOutputStream memOut;
-    CPPUNIT_ASSERT(image.SaveFile(memOut, wxBITMAP_TYPE_GIF));
+    REQUIRE(image.SaveFile(memOut, wxBITMAP_TYPE_GIF));
 
     wxMemoryInputStream memIn(memOut);
-    CPPUNIT_ASSERT( image.LoadFile(memIn) );
+    REQUIRE( image.LoadFile(memIn) );
 
-    CPPUNIT_ASSERT_EQUAL(comment,
-        image.GetOption(wxIMAGE_OPTION_GIF_COMMENT));
+    CHECK( image.GetOption(wxIMAGE_OPTION_GIF_COMMENT) == comment );
 }
 
-void ImageTestCase::GIFComment()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::GIFComment", "[image]")
 {
     // Test reading a comment.
     wxImage image("horse.gif");
-    CPPUNIT_ASSERT_EQUAL("  Imported from GRADATION image: gray",
-        image.GetOption(wxIMAGE_OPTION_GIF_COMMENT));
+    CHECK( image.GetOption(wxIMAGE_OPTION_GIF_COMMENT) ==
+           "  Imported from GRADATION image: gray" );
 
 
     // Test writing a comment and reading it back.
@@ -1272,7 +1206,7 @@ void ImageTestCase::GIFComment()
 
 
     // Test writing comments in an animated GIF and reading them back.
-    CPPUNIT_ASSERT( image.LoadFile("horse.gif") );
+    REQUIRE( image.LoadFile("horse.gif") );
 
 #if wxUSE_PALETTE
     wxImageArray images;
@@ -1281,12 +1215,12 @@ void ImageTestCase::GIFComment()
     {
         if (i)
         {
-            images.Add( images[i-1].Rotate90() );
+            images.push_back( images[i-1].Rotate90() );
             images[i].SetPalette(images[0].GetPalette());
         }
         else
         {
-            images.Add(image);
+            images.push_back(image);
         }
 
         images[i].SetOption(wxIMAGE_OPTION_GIF_COMMENT,
@@ -1296,20 +1230,19 @@ void ImageTestCase::GIFComment()
 
 
     wxMemoryOutputStream memOut;
-    CPPUNIT_ASSERT( wxGIFHandler().SaveAnimation(images, &memOut) );
+    REQUIRE( wxGIFHandler().SaveAnimation(images, &memOut) );
 
     wxGIFHandler handler;
     wxMemoryInputStream memIn(memOut);
-    CPPUNIT_ASSERT(memIn.IsOk());
+    REQUIRE(memIn.IsOk());
     const int imageCount = handler.GetImageCount(memIn);
     for (i = 0; i < imageCount; ++i)
     {
         wxFileOffset pos = memIn.TellI();
-        CPPUNIT_ASSERT( handler.LoadFile(&image, memIn, true /*verbose?*/, i) );
+        REQUIRE( handler.LoadFile(&image, memIn, true /*verbose?*/, i) );
 
-        CPPUNIT_ASSERT_EQUAL(
-            wxString::Format("GIF comment for frame #%d", i+1),
-            image.GetOption(wxIMAGE_OPTION_GIF_COMMENT));
+        CHECK( image.GetOption(wxIMAGE_OPTION_GIF_COMMENT) ==
+               wxString::Format("GIF comment for frame #%d", i+1) );
         memIn.SeekI(pos);
     }
 #endif //wxUSE_PALETTE
@@ -1317,7 +1250,7 @@ void ImageTestCase::GIFComment()
 
 #endif // wxUSE_GIF
 
-void ImageTestCase::DibPadding()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::DibPadding", "[image]")
 {
     /*
     There used to be an error with calculating the DWORD aligned scan line
@@ -1326,26 +1259,27 @@ void ImageTestCase::DibPadding()
     an ICO). Test for it here.
     */
     wxImage image("horse.gif");
-    CPPUNIT_ASSERT( image.IsOk() );
+    REQUIRE( image.IsOk() );
 
     image = image.Scale(99, 99);
 
     wxMemoryOutputStream memOut;
-    CPPUNIT_ASSERT( image.SaveFile(memOut, wxBITMAP_TYPE_ICO) );
+    REQUIRE( image.SaveFile(memOut, wxBITMAP_TYPE_ICO) );
 }
 
 static void CompareBMPImage(const wxString& file1, const wxString& file2)
 {
     wxImage image1(file1);
-    CPPUNIT_ASSERT( image1.IsOk() );
+    REQUIRE( image1.IsOk() );
 
     wxImage image2(file2);
-    CPPUNIT_ASSERT( image2.IsOk() );
+    REQUIRE( image2.IsOk() );
 
+    INFO("Comparing " << file1 << " and " << file2);
     CompareImage(*wxImage::FindHandler(wxBITMAP_TYPE_BMP), image1, 0, &image2);
 }
 
-void ImageTestCase::BMPFlippingAndRLECompression()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BMPFlippingAndRLECompression", "[image]")
 {
     CompareBMPImage("image/horse_grey.bmp", "image/horse_grey_flipped.bmp");
 
@@ -1394,14 +1328,15 @@ FindMaxChannelDiff(const wxImage& i1, const wxImage& i2)
 #define ASSERT_IMAGE_EQUAL_TO_FILE(image, file) \
     if ( 0 ) \
     { \
-        CPPUNIT_ASSERT_MESSAGE( "Failed to save " file, image.SaveFile(file) ); \
+        INFO("Failed to save \"" << file << "\""); \
+        CHECK( image.SaveFile(file) ); \
     } \
     else \
     { \
         const wxImage imageFromFile(file); \
         if ( imageFromFile.IsOk() ) \
         { \
-            INFO("Wrong scaled \"" << file << "\" " << Catch::toString(image)); \
+            INFO("Wrong scaled \"" << file << "\" " << Catch::StringMaker<wxImage>::convert(image)); \
             CHECK(FindMaxChannelDiff(imageFromFile, image) <= 1); \
         } \
         else \
@@ -1410,10 +1345,10 @@ FindMaxChannelDiff(const wxImage& i1, const wxImage& i2)
         } \
     }
 
-void ImageTestCase::ScaleCompare()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::ScaleCompare", "[image]")
 {
     wxImage original;
-    CPPUNIT_ASSERT(original.LoadFile("horse.bmp"));
+    REQUIRE(original.LoadFile("horse.bmp"));
 
     ASSERT_IMAGE_EQUAL_TO_FILE(original.Scale( 50,  50, wxIMAGE_QUALITY_BICUBIC),
                                "image/horse_bicubic_50x50.png");
@@ -1473,9 +1408,9 @@ void ImageTestCase::ScaleCompare()
                                "image/cross_nearest_neighb_256x256.png");
 }
 
-void ImageTestCase::CreateBitmapFromCursor()
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::CreateBitmapFromCursor", "[image]")
 {
-#if !defined __WXOSX_IPHONE__ && !defined __WXDFB__ && !defined __WXMOTIF__ && !defined __WXX11__
+#if !defined __WXOSX_IPHONE__ && !defined __WXDFB__ && !defined __WXX11__
 
     wxImage image("image/wx.png");
     wxCursor cursor(image);
@@ -1559,7 +1494,7 @@ static void LoadMalformedImageWithException(const wxString& file,
 #endif
 }
 
-TEST_CASE("wxImage::BMP", "[image][bmp]")
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BMP", "[image][bmp]")
 {
     SECTION("Load malformed bitmaps")
     {
@@ -1573,7 +1508,7 @@ TEST_CASE("wxImage::BMP", "[image][bmp]")
     }
 }
 
-TEST_CASE("wxImage::Paste", "[image][paste]")
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::Paste", "[image][paste]")
 {
     const static char* squares_xpm[] =
     {
@@ -1649,8 +1584,12 @@ TEST_CASE("wxImage::Paste", "[image][paste]")
     };
 
     // Execute AddHandler() just once.
-    static const bool
-        registeredHandler = (wxImage::AddHandler(new wxPNGHandler()), true);
+    static bool s_registeredHandler = false;
+    if ( !s_registeredHandler )
+    {
+        wxImage::AddHandler(new wxPNGHandler());
+        s_registeredHandler = true;
+    }
 
     SECTION("Paste same size image")
     {
@@ -2064,7 +2003,7 @@ TEST_CASE("wxImage::RGBtoHSV", "[image][rgb][hsv]")
     }
 }
 
-TEST_CASE("wxImage::Clipboard", "[image][clipboard]")
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::Clipboard", "[image][clipboard]")
 {
 #if wxUSE_CLIPBOARD && wxUSE_DATAOBJ
     wxInitAllImageHandlers();
@@ -2259,7 +2198,7 @@ TEST_CASE("wxImage::XPM", "[image][xpm]")
    CHECK( wxIcon(dummy_xpm).IsOk() );
 }
 
-TEST_CASE("wxImage::PNM", "[image][pnm]")
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::PNM", "[image][pnm]")
 {
 #if wxUSE_PNM
     wxImage::AddHandler(new wxPNMHandler);
@@ -2273,7 +2212,22 @@ TEST_CASE("wxImage::PNM", "[image][pnm]")
 #endif
 }
 
-TEST_CASE("wxImage::ChangeColours", "[image]")
+namespace
+{
+
+inline ImageRGBMatcher RGBSimilarToFile(const char* name)
+{
+    INFO("Loading file from " << name);
+
+    wxImage expected;
+    REQUIRE(expected.LoadFile(name));
+
+    return ImageRGBMatcher(expected, 1);
+}
+
+} // anonymous namespace
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::ChangeColours", "[image]")
 {
     wxImage original;
     REQUIRE(original.LoadFile("image/toucan.png", wxBITMAP_TYPE_PNG));
@@ -2283,43 +2237,63 @@ TEST_CASE("wxImage::ChangeColours", "[image]")
 
     test = original;
     test.RotateHue(0.538);
-    REQUIRE(expected.LoadFile("image/toucan_hue_0.538.png", wxBITMAP_TYPE_PNG));
-    CHECK_THAT(test, RGBSameAs(expected));
+    CHECK_THAT(test, RGBSimilarToFile("image/toucan_hue_0.538.png"));
 
     test = original;
     test.ChangeSaturation(-0.41);
-    REQUIRE(expected.LoadFile("image/toucan_sat_-0.41.png", wxBITMAP_TYPE_PNG));
-    CHECK_THAT(test, RGBSameAs(expected));
+    CHECK_THAT(test, RGBSimilarToFile("image/toucan_sat_-0.41.png"));
 
     test = original;
     test.ChangeBrightness(-0.259);
-    REQUIRE(expected.LoadFile("image/toucan_bright_-0.259.png", wxBITMAP_TYPE_PNG));
-    CHECK_THAT(test, RGBSameAs(expected));
+    CHECK_THAT(test, RGBSimilarToFile("image/toucan_bright_-0.259.png"));
 
     test = original;
     test.ChangeHSV(0.538, -0.41, -0.259);
-    REQUIRE(expected.LoadFile("image/toucan_hsv_0.538_-0.41_-0.259.png", wxBITMAP_TYPE_PNG));
-    CHECK_THAT(test, RGBSameAs(expected));
+    CHECK_THAT(test, RGBSimilarToFile("image/toucan_hsv_0.538_-0.41_-0.259.png"));
 
     test = original;
     test = test.ChangeLightness(46);
-    REQUIRE(expected.LoadFile("image/toucan_light_46.png", wxBITMAP_TYPE_PNG));
-    CHECK_THAT(test, RGBSameAs(expected));
+    CHECK_THAT(test, RGBSimilarToFile("image/toucan_light_46.png"));
 
     test = original;
     test = test.ConvertToDisabled(240);
-    REQUIRE(expected.LoadFile("image/toucan_dis_240.png", wxBITMAP_TYPE_PNG));
-    CHECK_THAT(test, RGBSameAs(expected));
+    CHECK_THAT(test, RGBSimilarToFile("image/toucan_dis_240.png"));
 
     test = original;
     test = test.ConvertToGreyscale();
-    REQUIRE(expected.LoadFile("image/toucan_grey.png", wxBITMAP_TYPE_PNG));
-    CHECK_THAT(test, RGBSameAs(expected));
+    CHECK_THAT(test, RGBSimilarToFile("image/toucan_grey.png"));
 
     test = original;
     test = test.ConvertToMono(255, 255, 255);
-    REQUIRE(expected.LoadFile("image/toucan_mono_255_255_255.png", wxBITMAP_TYPE_PNG));
-    CHECK_THAT(test, RGBSameAs(expected));
+    CHECK_THAT(test, RGBSimilarToFile("image/toucan_mono_255_255_255.png"));
+}
+
+TEST_CASE("wxImage::Clear", "[image]")
+{
+    wxImage image(2, 2);
+    image.SetRGB(0, 0, 0xff, 0x00, 0x00);
+    image.SetRGB(0, 1, 0x00, 0xff, 0x00);
+    image.SetRGB(1, 0, 0x00, 0x00, 0xff);
+    image.SetRGB(1, 1, 0xff, 0xff, 0xff);
+
+    wxImage image2{image};
+
+    // Check that the image has the expected red component values initially.
+    CHECK( image2.GetRed(0, 0) == 0xff );
+    CHECK( image2.GetRed(0, 1) == 0x00 );
+    CHECK( image2.GetRed(1, 0) == 0x00 );
+    CHECK( image2.GetRed(1, 1) == 0xff );
+
+    // Check that the image got cleared.
+    image2.Clear();
+    CHECK( image2.GetRed(0, 0) == 0x00 );
+    CHECK( image2.GetRed(0, 1) == 0x00 );
+    CHECK( image2.GetRed(1, 0) == 0x00 );
+    CHECK( image2.GetRed(1, 1) == 0x00 );
+
+    // Check that the original image didn't change (see #23553).
+    CHECK( image.GetRed(0, 0) == 0xff );
+    CHECK( image.GetRed(1, 1) == 0xff );
 }
 
 TEST_CASE("wxImage::SizeLimits", "[image]")
@@ -2332,6 +2306,26 @@ TEST_CASE("wxImage::SizeLimits", "[image]")
     CHECK( image.GetWidth() == 100000 );
     CHECK( image.GetHeight() == 1 );
 #endif // SIZEOF_VOID_P == 8
+}
+
+// This can be used to test loading an arbitrary image file by setting the
+// environment variable WX_TEST_IMAGE_PATH to point to it.
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::LoadPath", "[.]")
+{
+    wxString path;
+    REQUIRE( wxGetEnv("WX_TEST_IMAGE_PATH", &path) );
+
+    TestLogEnabler enableLogs;
+
+    wxImage image;
+    REQUIRE( image.LoadFile(path) );
+
+    WARN("Image "
+            << image.GetWidth()
+            << "*"
+            << image.GetHeight()
+            << (image.HasAlpha() ? " with alpha" : "")
+            << " loaded");
 }
 
 /*

@@ -8,13 +8,13 @@
 
 
 
+/** Web colour is currently unsupported @hideinitializer */
+constexpr wxUint32 wxPG_COLOUR_WEB_BASE  = 0x10000;
 
-// Web colour is currently unsupported
-#define wxPG_COLOUR_WEB_BASE        0x10000
-
-
-#define wxPG_COLOUR_CUSTOM      0xFFFFFF
-#define wxPG_COLOUR_UNSPECIFIED (wxPG_COLOUR_CUSTOM+1)
+/** @hideinitializer */
+constexpr wxUint32 wxPG_COLOUR_CUSTOM = 0xFFFFFF;
+/** @hideinitializer */
+constexpr wxUint32 wxPG_COLOUR_UNSPECIFIED = wxPG_COLOUR_CUSTOM + 1;
 
 /** @class wxColourPropertyValue
 
@@ -90,8 +90,10 @@ protected:
 
 
 
-/** If set, then match from list is searched for a custom colour. */
-#define wxPG_PROP_TRANSLATE_CUSTOM      wxPG_PROP_CLASS_SPECIFIC_1
+/** If set, then match from list is searched for a custom colour in wxColourProperty.
+    @hideinitializer
+*/
+constexpr wxPGPropertyFlags wxPG_PROP_TRANSLATE_CUSTOM = wxPG_PROP_CLASS_SPECIFIC_1;
 
 
 /** @class wxSystemColourProperty
@@ -148,7 +150,7 @@ public:
     */
     virtual wxColour GetColour( int index ) const;
 
-    wxColourPropertyValue GetVal( const wxVariant* pVariant = NULL ) const;
+    wxColourPropertyValue GetVal( const wxVariant* pVariant = nullptr ) const;
 
 protected:
 
@@ -240,7 +242,7 @@ public:
 
     wxImageFileProperty( const wxString& label= wxPG_LABEL,
                          const wxString& name = wxPG_LABEL,
-                         const wxString& value = wxEmptyString);
+                         const wxString& value = wxString());
     virtual ~wxImageFileProperty();
 
     virtual void OnSetValue();
@@ -248,10 +250,6 @@ public:
     virtual wxSize OnMeasureImage( int item ) const;
     virtual void OnCustomPaint( wxDC& dc,
                                 const wxRect& rect, wxPGPaintData& paintdata );
-
-protected:
-    wxBitmap*   m_pBitmap; // final thumbnail area
-    wxImage*    m_pImage; // intermediate thumbnail area
 };
 
 

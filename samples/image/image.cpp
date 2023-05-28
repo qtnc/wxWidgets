@@ -24,7 +24,6 @@
 #include "wx/mstream.h"
 #include "wx/wfstream.h"
 #include "wx/quantize.h"
-#include "wx/scopedptr.h"
 #include "wx/stopwatch.h"
 #include "wx/versioninfo.h"
 #include "wx/artprov.h"
@@ -48,6 +47,8 @@
 
 #include "canvas.h"
 
+#include <memory>
+
 #ifndef wxHAS_IMAGES_IN_RESOURCES
     #include "../sample.xpm"
 #endif
@@ -63,7 +64,7 @@
 class MyApp: public wxApp
 {
 public:
-    virtual bool OnInit() wxOVERRIDE;
+    virtual bool OnInit() override;
 };
 
 // ----------------------------------------------------------------------------
@@ -124,7 +125,7 @@ private:
 
 enum
 {
-    ID_ROTATE_LEFT = wxID_HIGHEST+1,
+    ID_ROTATE_LEFT = wxID_HIGHEST,
     ID_ROTATE_RIGHT,
     ID_RESIZE,
     ID_ZOOM_x2,
@@ -311,7 +312,7 @@ private:
             return;
 
         wxString extension;
-        wxFileName::SplitPath(savefilename, NULL, NULL, &extension);
+        wxFileName::SplitPath(savefilename, nullptr, nullptr, &extension);
 
         bool saved = false;
         if ( extension == "bmp" )
@@ -563,7 +564,7 @@ private:
     // This is a copy of protected wxImageHandler::GetResolutionFromOptions()
     static wxImageResolution GetResolutionFromOptions(const wxImage& image, int* x, int* y)
     {
-        wxCHECK_MSG(x && y, wxIMAGE_RESOLUTION_NONE, wxT("NULL pointer"));
+        wxCHECK_MSG(x && y, wxIMAGE_RESOLUTION_NONE, wxT("null pointer"));
 
         if ( image.HasOption(wxIMAGE_OPTION_RESOLUTIONX) &&
             image.HasOption(wxIMAGE_OPTION_RESOLUTIONY) )
@@ -613,12 +614,9 @@ private:
 class MyRawBitmapFrame : public wxFrame
 {
 public:
-    enum
-    {
-        BORDER = 15,
-        SIZE = 150,
-        REAL_SIZE = SIZE - 2*BORDER
-    };
+    static const int BORDER = 15;
+    static const int SIZE = 150;
+    static const int REAL_SIZE = SIZE - 2*BORDER;
 
     MyRawBitmapFrame(wxFrame *parent)
         : wxFrame(parent, wxID_ANY, "Raw bitmaps (how exciting)"),
@@ -1100,7 +1098,7 @@ wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
 wxEND_EVENT_TABLE()
 
 MyFrame::MyFrame()
-    : wxFrame( (wxFrame *)NULL, wxID_ANY, "wxImage sample",
+    : wxFrame( nullptr, wxID_ANY, "wxImage sample",
                 wxPoint(20, 20), wxSize(950, 700) )
 {
     SetIcon(wxICON(sample));
@@ -1270,7 +1268,7 @@ private:
 
         // Use wxGraphicsContext if available for alpha support.
 #if wxUSE_GRAPHICS_CONTEXT
-        wxScopedPtr<wxGraphicsContext> const
+        std::unique_ptr<wxGraphicsContext> const
             gc(wxGraphicsRenderer::GetDefaultRenderer()->CreateContext(dc));
 
         gc->DrawBitmap(m_bitmap, 0, 0, sizeWin.x, sizeWin.y);
@@ -1409,7 +1407,7 @@ private:
     void OnPaint(wxPaintEvent& WXUNUSED(event))
     {
         wxPaintDC dc(this);
-        wxScopedPtr<wxGraphicsContext> gc(wxGraphicsContext::Create(dc));
+        std::unique_ptr<wxGraphicsContext> gc(wxGraphicsContext::Create(dc));
         wxGraphicsBitmap gb(gc->CreateBitmapFromImage(m_image));
 
         gc->SetFont(*wxNORMAL_FONT, *wxBLACK);

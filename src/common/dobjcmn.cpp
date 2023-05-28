@@ -24,14 +24,6 @@
 #include "wx/textbuf.h"
 
 // ----------------------------------------------------------------------------
-// lists
-// ----------------------------------------------------------------------------
-
-#include "wx/listimpl.cpp"
-
-WX_DEFINE_LIST(wxSimpleDataObjectList)
-
-// ----------------------------------------------------------------------------
 // globals
 // ----------------------------------------------------------------------------
 
@@ -87,33 +79,25 @@ wxDataObjectComposite::wxDataObjectComposite()
     m_receivedFormat = wxFormatInvalid;
 }
 
-wxDataObjectComposite::~wxDataObjectComposite()
-{
-    WX_CLEAR_LIST( wxSimpleDataObjectList, m_dataObjects );
-}
+wxDataObjectComposite::~wxDataObjectComposite() = default;
 
 wxDataObjectSimple *
 wxDataObjectComposite::GetObject(const wxDataFormat& format, wxDataObjectBase::Direction dir) const
 {
-    wxSimpleDataObjectList::compatibility_iterator node = m_dataObjects.GetFirst();
-
-    while ( node )
+    for ( const auto& dataObj : m_dataObjects )
     {
-        wxDataObjectSimple *dataObj = node->GetData();
-
         if (dataObj->IsSupported(format,dir))
-          return dataObj;
-        node = node->GetNext();
+          return dataObj.get();
     }
-    return NULL;
+    return nullptr;
 }
 
 void wxDataObjectComposite::Add(wxDataObjectSimple *dataObject, bool preferred)
 {
     if ( preferred )
-        m_preferred = m_dataObjects.GetCount();
+        m_preferred = m_dataObjects.size();
 
-    m_dataObjects.Append( dataObject );
+    m_dataObjects.push_back(std::unique_ptr<wxDataObjectSimple>(dataObject));
 }
 
 wxDataFormat wxDataObjectComposite::GetReceivedFormat() const
@@ -124,13 +108,10 @@ wxDataFormat wxDataObjectComposite::GetReceivedFormat() const
 wxDataFormat
 wxDataObjectComposite::GetPreferredFormat(Direction WXUNUSED(dir)) const
 {
-    wxSimpleDataObjectList::compatibility_iterator node = m_dataObjects.Item( m_preferred );
+    wxCHECK_MSG( m_preferred < m_dataObjects.size(), wxFormatInvalid,
+                 wxT("no preferred format") );
 
-    wxCHECK_MSG( node, wxFormatInvalid, wxT("no preferred format") );
-
-    wxDataObjectSimple* dataObj = node->GetData();
-
-    return dataObj->GetFormat();
+    return m_dataObjects[m_preferred]->GetFormat();
 }
 
 #if defined(__WXMSW__)
@@ -152,7 +133,7 @@ const void* wxDataObjectComposite::GetSizeFromBuffer( const void* buffer,
 {
     wxDataObjectSimple *dataObj = GetObject(format);
 
-    wxCHECK_MSG( dataObj, NULL,
+    wxCHECK_MSG( dataObj, nullptr,
                  wxT("unsupported format in wxDataObjectComposite"));
 
     return dataObj->GetSizeFromBuffer( buffer, size, format );
@@ -164,7 +145,7 @@ void* wxDataObjectComposite::SetSizeInBuffer( void* buffer, size_t size,
 {
     wxDataObjectSimple *dataObj = GetObject( format );
 
-    wxCHECK_MSG( dataObj, NULL,
+    wxCHECK_MSG( dataObj, nullptr,
                  wxT("unsupported format in wxDataObjectComposite"));
 
     return dataObj->SetSizeInBuffer( buffer, size, format );
@@ -179,9 +160,8 @@ size_t wxDataObjectComposite::GetFormatCount(Direction dir) const
     // NOTE: some wxDataObjectSimple objects may return a number greater than 1
     //       from GetFormatCount(): this is the case of e.g. wxTextDataObject
     //       under wxMac and wxGTK
-    wxSimpleDataObjectList::compatibility_iterator node;
-    for ( node = m_dataObjects.GetFirst(); node; node = node->GetNext() )
-        n += node->GetData()->GetFormatCount(dir);
+    for ( const auto& dataObj : m_dataObjects )
+        n += dataObj->GetFormatCount(dir);
 
     return n;
 }
@@ -190,15 +170,14 @@ void wxDataObjectComposite::GetAllFormats(wxDataFormat *formats,
                                           Direction dir) const
 {
     size_t index(0);
-    wxSimpleDataObjectList::compatibility_iterator node;
 
-    for ( node = m_dataObjects.GetFirst(); node; node = node->GetNext() )
+    for ( const auto& dataObj : m_dataObjects )
     {
         // NOTE: some wxDataObjectSimple objects may return more than 1 format
         //       from GetAllFormats(): this is the case of e.g. wxTextDataObject
         //       under wxMac and wxGTK
-        node->GetData()->GetAllFormats(formats+index, dir);
-        index += node->GetData()->GetFormatCount(dir);
+        dataObj->GetAllFormats(formats+index, dir);
+        index += dataObj->GetFormatCount(dir);
     }
 }
 
@@ -284,10 +263,10 @@ bool wxTextDataObject::GetDataHere(const wxDataFormat& format, void *buf) const
 bool wxTextDataObject::SetData(const wxDataFormat& format,
                                size_t len, const void *buf)
 {
-    if ( buf == NULL )
+    if ( buf == nullptr )
         return false;
 
-    wxWCharBuffer buffer = GetConv(format).cMB2WC((const char*)buf, len, NULL);
+    wxWCharBuffer buffer = GetConv(format).cMB2WC((const char*)buf, len, nullptr);
 
     SetText( buffer );
 
@@ -337,7 +316,7 @@ bool wxTextDataObject::SetData(const wxDataFormat& format,
 {
     const char * const buf = static_cast<const char *>(buf_);
 
-    if ( buf == NULL )
+    if ( buf == nullptr )
         return false;
 
     if ( format == wxDF_UNICODETEXT || wxLocaleIsUtf8 )
@@ -351,7 +330,7 @@ bool wxTextDataObject::SetData(const wxDataFormat& format,
     }
     else // wxDF_TEXT, convert from current (non-UTF8) locale
     {
-        SetText(wxConvLocal.cMB2WC(buf, len, NULL));
+        SetText(wxConvLocal.cMB2WC(buf, len, nullptr));
     }
 
     return true;
@@ -376,12 +355,12 @@ inline wxMBConv& GetConv(const wxDataFormat& format)
 
 size_t wxTextDataObject::GetDataSize(const wxDataFormat& format) const
 {
-    return GetConv(format).WC2MB(NULL, GetText().wc_str(), 0);
+    return GetConv(format).WC2MB(nullptr, GetText().wc_str(), 0);
 }
 
 bool wxTextDataObject::GetDataHere(const wxDataFormat& format, void *buf) const
 {
-    if ( buf == NULL )
+    if ( buf == nullptr )
         return false;
 
     wxCharBuffer buffer(GetConv(format).cWX2MB(GetText().c_str()));
@@ -395,10 +374,10 @@ bool wxTextDataObject::SetData(const wxDataFormat& format,
                                size_t len,
                                const void *buf)
 {
-    if ( buf == NULL )
+    if ( buf == nullptr )
         return false;
 
-    SetText(GetConv(format).cMB2WC(static_cast<const char*>(buf), len, NULL));
+    SetText(GetConv(format).cMB2WC(static_cast<const char*>(buf), len, nullptr));
 
     return true;
 }
@@ -420,7 +399,7 @@ bool wxTextDataObject::GetDataHere(void *buf) const
     const wxString textNative = wxTextBuffer::Translate(GetText());
 
     // NOTE: use wxTmemcpy() instead of wxStrncpy() to allow
-    //       retrieval of strings with embedded NULLs
+    //       retrieval of strings with embedded NULs
     wxTmemcpy(static_cast<wxChar*>(buf),
               textNative.t_str(),
               textNative.length() + 1);
@@ -430,8 +409,15 @@ bool wxTextDataObject::GetDataHere(void *buf) const
 
 bool wxTextDataObject::SetData(size_t len, const void *buf)
 {
-    const wxString
-        text = wxString(static_cast<const wxChar*>(buf), len/sizeof(wxChar));
+    // Some sanity checks to avoid problems below.
+    wxCHECK_MSG( len, false, "data can't be empty" );
+    wxCHECK_MSG( !(len % sizeof(wxChar)), false, "wrong data size" );
+
+    // Input data is always NUL-terminated, but we don't want to make this NUL
+    // part of the string, so take everything up to but excluding it.
+    const size_t size = len/sizeof(wxChar) - 1;
+
+    const wxString text(static_cast<const wxChar*>(buf), size);
     SetText(wxTextBuffer::Translate(text, wxTextFileType_Unix));
 
     return true;
@@ -524,7 +510,7 @@ bool wxHTMLDataObject::GetDataHere(void *buf) const
 
 bool wxHTMLDataObject::SetData(size_t WXUNUSED(len), const void *buf)
 {
-    if ( buf == NULL )
+    if ( buf == nullptr )
         return false;
 
     // Windows and Mac always use UTF-8, and docs suggest GTK does as well.
@@ -559,7 +545,7 @@ bool wxHTMLDataObject::SetData(size_t WXUNUSED(len), const void *buf)
 wxCustomDataObject::wxCustomDataObject(const wxDataFormat& format)
     : wxDataObjectSimple(format)
 {
-    m_data = NULL;
+    m_data = nullptr;
     m_size = 0;
 }
 
@@ -585,7 +571,7 @@ void wxCustomDataObject::Free()
 {
     delete [] (char*)m_data;
     m_size = 0;
-    m_data = NULL;
+    m_data = nullptr;
 }
 
 size_t wxCustomDataObject::GetDataSize() const
@@ -595,11 +581,11 @@ size_t wxCustomDataObject::GetDataSize() const
 
 bool wxCustomDataObject::GetDataHere(void *buf) const
 {
-    if ( buf == NULL )
+    if ( buf == nullptr )
         return false;
 
     void *data = GetData();
-    if ( data == NULL )
+    if ( data == nullptr )
         return false;
 
     memcpy( buf, data, GetSize() );
@@ -612,7 +598,7 @@ bool wxCustomDataObject::SetData(size_t size, const void *buf)
     Free();
 
     m_data = Alloc(size);
-    if ( m_data == NULL )
+    if ( m_data == nullptr )
         return false;
 
     m_size = size;
@@ -654,7 +640,7 @@ wxImageDataObject::wxImageDataObject(const wxImage& image)
 
 void wxImageDataObject::SetImage(const wxImage& image)
 {
-    wxCHECK_RET(wxImage::FindHandler(wxIMAGE_FORMAT_BITMAP_TYPE) != NULL,
+    wxCHECK_RET(wxImage::FindHandler(wxIMAGE_FORMAT_BITMAP_TYPE) != nullptr,
         wxIMAGE_FORMAT_NAME " image handler must be installed to use clipboard with image");
 
     wxMemoryOutputStream mem;
@@ -665,7 +651,7 @@ void wxImageDataObject::SetImage(const wxImage& image)
 
 wxImage wxImageDataObject::GetImage() const
 {
-    wxCHECK_MSG(wxImage::FindHandler(wxIMAGE_FORMAT_BITMAP_TYPE) != NULL, wxNullImage,
+    wxCHECK_MSG(wxImage::FindHandler(wxIMAGE_FORMAT_BITMAP_TYPE) != nullptr, wxNullImage,
         wxIMAGE_FORMAT_NAME " image handler must be installed to use clipboard with image");
 
     wxMemoryInputStream mem(GetData(), GetSize());

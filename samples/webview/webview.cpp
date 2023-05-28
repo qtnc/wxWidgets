@@ -54,10 +54,10 @@
 
 #include "wxlogo.xpm"
 
+#include <map>
 
 //We map menu items to their history items
-WX_DECLARE_HASH_MAP(int, wxSharedPtr<wxWebViewHistoryItem>,
-                    wxIntegerHash, wxIntegerEqual, wxMenuHistoryMap);
+using wxMenuHistoryMap = std::map<int, wxSharedPtr<wxWebViewHistoryItem>>;
 
 class WebApp : public wxApp
 {
@@ -67,10 +67,10 @@ public:
     {
     }
 
-    virtual bool OnInit() wxOVERRIDE;
+    virtual bool OnInit() override;
 
 #if wxUSE_CMDLINE_PARSER
-    virtual void OnInitCmdLine(wxCmdLineParser& parser) wxOVERRIDE
+    virtual void OnInitCmdLine(wxCmdLineParser& parser) override
     {
         wxApp::OnInitCmdLine(parser);
 
@@ -79,7 +79,7 @@ public:
                         wxCMD_LINE_PARAM_OPTIONAL);
     }
 
-    virtual bool OnCmdLineParsed(wxCmdLineParser& parser) wxOVERRIDE
+    virtual bool OnCmdLineParsed(wxCmdLineParser& parser) override
     {
         if ( !wxApp::OnCmdLineParsed(parser) )
             return false;
@@ -98,7 +98,7 @@ private:
 class WebFrame : public wxFrame
 {
 public:
-    WebFrame(const wxString& url);
+    WebFrame(const wxString& url, bool isMain = true, wxWebViewWindowFeatures* windowFeatures = nullptr);
     virtual ~WebFrame();
 
     void UpdateState();
@@ -114,10 +114,12 @@ public:
     void OnNavigationComplete(wxWebViewEvent& evt);
     void OnDocumentLoaded(wxWebViewEvent& evt);
     void OnNewWindow(wxWebViewEvent& evt);
+    void OnNewWindowFeatures(wxWebViewEvent& evt);
     void OnTitleChanged(wxWebViewEvent& evt);
     void OnFullScreenChanged(wxWebViewEvent& evt);
     void OnScriptMessage(wxWebViewEvent& evt);
     void OnScriptResult(wxWebViewEvent& evt);
+    void OnWindowCloseRequested(wxWebViewEvent& evt);
     void OnSetPage(wxCommandEvent& evt);
     void OnViewSourceRequest(wxCommandEvent& evt);
     void OnViewTextRequest(wxCommandEvent& evt);
@@ -164,16 +166,19 @@ public:
     void OnSelectAll(wxCommandEvent& evt);
     void OnLoadScheme(wxCommandEvent& evt);
     void OnUseMemoryFS(wxCommandEvent& evt);
+    void OnLoadAdvancedHandler(wxCommandEvent& evt);
     void OnFind(wxCommandEvent& evt);
     void OnFindDone(wxCommandEvent& evt);
     void OnFindText(wxCommandEvent& evt);
     void OnFindOptions(wxCommandEvent& evt);
     void OnEnableContextMenu(wxCommandEvent& evt);
     void OnEnableDevTools(wxCommandEvent& evt);
+    void OnEnableBrowserAcceleratorKeys(wxCommandEvent& evt);
 
 private:
     wxTextCtrl* m_url;
     wxWebView* m_browser;
+    bool m_isMainFrame;
 
     wxToolBar* m_toolbar;
     wxToolBarToolBase* m_toolbar_back;
@@ -236,6 +241,7 @@ private:
     wxMenuItem* m_find;
     wxMenuItem* m_context_menu;
     wxMenuItem* m_dev_tools;
+    wxMenuItem* m_browser_accelerator_keys;
 
     wxInfoBar *m_info;
     wxStaticText* m_info_text;
@@ -255,6 +261,40 @@ class SourceViewDialog : public wxDialog
 {
 public:
     SourceViewDialog(wxWindow* parent, wxString source);
+};
+
+// AdvancedWebViewHandler is a sample handler used by handler_advanced.html
+// to show a sample implementation of wxWebViewHandler::StartRequest().
+// see the documentation for additional details.
+class AdvancedWebViewHandler: public wxWebViewHandler
+{
+public:
+    AdvancedWebViewHandler():
+        wxWebViewHandler("wxpost")
+    { }
+
+    virtual void StartRequest(const wxWebViewHandlerRequest& request,
+                              wxSharedPtr<wxWebViewHandlerResponse> response) override
+    {
+        response->SetHeader("Access-Control-Allow-Origin", "*");
+        response->SetHeader("Access-Control-Allow-Headers", "*");
+
+        // Handle options request
+        if (request.GetMethod().IsSameAs("options", false))
+        {
+            response->Finish("");
+            return;
+        }
+
+        response->SetContentType("application/json");
+        response->Finish(
+            wxString::Format(
+                "{\n  contentType: \"%s\",\n  method: \"%s\",\n  data: \"%s\"\n}",
+                request.GetHeader("Content-Type"),
+                request.GetMethod(),
+                request.GetDataString()
+        ));
+    }
 };
 
 wxIMPLEMENT_APP(WebApp);
@@ -295,9 +335,11 @@ bool WebApp::OnInit()
     return true;
 }
 
-WebFrame::WebFrame(const wxString& url) :
-    wxFrame(NULL, wxID_ANY, "wxWebView Sample")
+WebFrame::WebFrame(const wxString& url, bool isMain, wxWebViewWindowFeatures* windowFeatures):
+    wxFrame(nullptr, wxID_ANY, "wxWebView Sample")
 {
+    m_isMainFrame = isMain;
+
     // set the frame icon
     SetIcon(wxICON(sample));
     SetTitle("wxWebView Sample");
@@ -312,7 +354,7 @@ WebFrame::WebFrame(const wxString& url) :
     m_toolbar_forward = m_toolbar->AddTool(wxID_ANY, _("Forward"), wxArtProvider::GetBitmapBundle(wxART_GO_FORWARD, wxART_TOOLBAR));
     m_toolbar_stop = m_toolbar->AddTool(wxID_ANY, _("Stop"), wxArtProvider::GetBitmapBundle(wxART_STOP, wxART_TOOLBAR));
     m_toolbar_reload = m_toolbar->AddTool(wxID_ANY, _("Reload"), wxArtProvider::GetBitmapBundle(wxART_REFRESH, wxART_TOOLBAR));
-    m_url = new wxTextCtrl(m_toolbar, wxID_ANY, "",  wxDefaultPosition, FromDIP(wxSize(400, -1)), wxTE_PROCESS_ENTER );
+    m_url = new wxTextCtrl(m_toolbar, wxID_ANY, "", wxDefaultPosition, FromDIP(wxSize(400, -1)), wxTE_PROCESS_ENTER);
     m_toolbar->AddControl(m_url, _("URL"));
     m_toolbar_tools = m_toolbar->AddTool(wxID_ANY, _("Menu"), wxArtProvider::GetBitmapBundle(wxART_WX_LOGO, wxART_TOOLBAR));
 
@@ -363,7 +405,8 @@ WebFrame::WebFrame(const wxString& url) :
     topsizer->Add(m_info, wxSizerFlags().Expand());
 
     // Create a log window
-    new wxLogWindow(this, _("Logging"), true, false);
+    if (m_isMainFrame)
+        new wxLogWindow(this, _("Logging"), true, false);
 
 #if wxUSE_WEBVIEW_EDGE
     // Check if a fixed version of edge is present in
@@ -378,33 +421,55 @@ WebFrame::WebFrame(const wxString& url) :
     }
 #endif
     // Create the webview
-    m_browser = wxWebView::New();
+    m_browser = (windowFeatures) ? windowFeatures->GetChildWebView() : wxWebView::New();
 #ifdef __WXMAC__
-    // With WKWebView handlers need to be registered before creation
-    m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
-    m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
+    if (m_isMainFrame)
+    {
+        // With WKWebView handlers need to be registered before creation
+        m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
+        m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
+        m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new AdvancedWebViewHandler()));
+    }
 #endif
     m_browser->Create(this, wxID_ANY, url, wxDefaultPosition, wxDefaultSize);
     topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
 
-    // Log backend information
-    wxLogMessage("Backend: %s Version: %s", m_browser->GetClassInfo()->GetClassName(),
-        wxWebView::GetBackendVersionInfo().ToString());
-    wxLogMessage("User Agent: %s", m_browser->GetUserAgent());
+    if (m_isMainFrame)
+    {
+        // Log backend information
+        wxLogMessage("Backend: %s Version: %s", m_browser->GetClassInfo()->GetClassName(),
+            wxWebView::GetBackendVersionInfo().ToString());
+        wxLogMessage("User Agent: %s", m_browser->GetUserAgent());
 
 #ifndef __WXMAC__
-    //We register the wxfs:// protocol for testing purposes
-    m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
-    //And the memory: file system
-    m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
+        //We register the wxfs:// protocol for testing purposes
+        m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
+        //And the memory: file system
+        m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
+        m_browser->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new AdvancedWebViewHandler()));
 #endif
-    if (!m_browser->AddScriptMessageHandler("wx"))
-        wxLogError("Could not add script message handler");
+        if (!m_browser->AddScriptMessageHandler("wx"))
+            wxLogError("Could not add script message handler");
+    }
+    else
+        wxLogMessage("Created new window");
 
     SetSizer(topsizer);
 
     //Set a more sensible size for web browsing
     SetSize(FromDIP(wxSize(800, 600)));
+
+    if (windowFeatures)
+    {
+        if (windowFeatures->GetSize().IsFullySpecified())
+            SetSize(FromDIP(windowFeatures->GetSize()));
+        if (windowFeatures->GetPosition().IsFullySpecified())
+            Move(FromDIP(windowFeatures->GetPosition()));
+        if (!windowFeatures->ShouldDisplayToolBar())
+            m_toolbar->Hide();
+        if (!windowFeatures->ShouldDisplayMenuBar())
+            SetMenuBar(nullptr);
+    }
 
     // Create the Tools menu
     m_tools_menu = new wxMenu();
@@ -492,11 +557,15 @@ WebFrame::WebFrame(const wxString& url) :
 
     editmenu->AppendSubMenu(selection, "Selection");
 
-    wxMenuItem* loadscheme =  m_tools_menu->Append(wxID_ANY, _("Custom Scheme Example"));
-    wxMenuItem* usememoryfs =  m_tools_menu->Append(wxID_ANY, _("Memory File System Example"));
+    wxMenu* handlers = new wxMenu();
+    wxMenuItem* loadscheme =  handlers->Append(wxID_ANY, _("Custom Scheme"));
+    wxMenuItem* usememoryfs =  handlers->Append(wxID_ANY, _("Memory File System"));
+    wxMenuItem* advancedHandler =  handlers->Append(wxID_ANY, _("Advanced Handler"));
+    m_tools_menu->AppendSubMenu(handlers, _("Handler Examples"));
 
     m_context_menu = m_tools_menu->AppendCheckItem(wxID_ANY, _("Enable Context Menu"));
     m_dev_tools = m_tools_menu->AppendCheckItem(wxID_ANY, _("Enable Dev Tools"));
+    m_browser_accelerator_keys = m_tools_menu->AppendCheckItem(wxID_ANY, _("Enable Browser Accelerator Keys"));
 
     //By default we want to handle navigation and new windows
     m_tools_handle_navigation->Check();
@@ -534,10 +603,12 @@ WebFrame::WebFrame(const wxString& url) :
     Bind(wxEVT_WEBVIEW_LOADED, &WebFrame::OnDocumentLoaded, this, m_browser->GetId());
     Bind(wxEVT_WEBVIEW_ERROR, &WebFrame::OnError, this, m_browser->GetId());
     Bind(wxEVT_WEBVIEW_NEWWINDOW, &WebFrame::OnNewWindow, this, m_browser->GetId());
+    Bind(wxEVT_WEBVIEW_NEWWINDOW_FEATURES, &WebFrame::OnNewWindowFeatures, this, m_browser->GetId());
     Bind(wxEVT_WEBVIEW_TITLE_CHANGED, &WebFrame::OnTitleChanged, this, m_browser->GetId());
     Bind(wxEVT_WEBVIEW_FULLSCREEN_CHANGED, &WebFrame::OnFullScreenChanged, this, m_browser->GetId());
     Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &WebFrame::OnScriptMessage, this, m_browser->GetId());
     Bind(wxEVT_WEBVIEW_SCRIPT_RESULT, &WebFrame::OnScriptResult, this, m_browser->GetId());
+    Bind(wxEVT_WEBVIEW_WINDOW_CLOSE_REQUESTED, &WebFrame::OnWindowCloseRequested, this, m_browser->GetId());
 
     // Connect the menu events
     Bind(wxEVT_MENU, &WebFrame::OnSetPage, this, setPage->GetId());
@@ -591,9 +662,11 @@ WebFrame::WebFrame(const wxString& url) :
     Bind(wxEVT_MENU, &WebFrame::OnSelectAll, this, selectall->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnLoadScheme, this, loadscheme->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnUseMemoryFS, this, usememoryfs->GetId());
+    Bind(wxEVT_MENU, &WebFrame::OnLoadAdvancedHandler, this, advancedHandler->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnFind, this, m_find->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnEnableContextMenu, this, m_context_menu->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnEnableDevTools, this, m_dev_tools->GetId());
+    Bind(wxEVT_MENU, &WebFrame::OnEnableBrowserAcceleratorKeys, this, m_browser_accelerator_keys->GetId());
 
     //Connect the idle events
     Bind(wxEVT_IDLE, &WebFrame::OnIdle, this);
@@ -748,6 +821,17 @@ void WebFrame::OnUseMemoryFS(wxCommandEvent& WXUNUSED(evt))
     m_browser->LoadURL("memory:page1.htm");
 }
 
+void WebFrame::OnLoadAdvancedHandler(wxCommandEvent& WXUNUSED(evt))
+{
+    wxPathList pathlist;
+    pathlist.Add(".");
+    pathlist.Add("..");
+
+    wxString path = wxFileName(pathlist.FindValidPath("handler_advanced.html")).GetAbsolutePath();
+    path = "file://" + path;
+    m_browser->LoadURL(path);
+}
+
 void WebFrame::OnEnableContextMenu(wxCommandEvent& evt)
 {
     m_browser->EnableContextMenu(evt.IsChecked());
@@ -756,6 +840,11 @@ void WebFrame::OnEnableContextMenu(wxCommandEvent& evt)
 void WebFrame::OnEnableDevTools(wxCommandEvent& evt)
 {
     m_browser->EnableAccessToDevTools(evt.IsChecked());
+}
+
+void WebFrame::OnEnableBrowserAcceleratorKeys(wxCommandEvent& evt)
+{
+    m_browser->EnableBrowserAcceleratorKeys(evt.IsChecked());
 }
 
 void WebFrame::OnFind(wxCommandEvent& WXUNUSED(evt))
@@ -836,7 +925,7 @@ void WebFrame::OnNavigationRequest(wxWebViewEvent& evt)
     }
 
     wxLogMessage("%s", "Navigation request to '" + evt.GetURL() + "' (target='" +
-    evt.GetTarget() + "')");
+    evt.GetTarget() + "')" + ((evt.IsTargetMainFrame()) ? " mainFrame" : ""));
 
     //If we don't want to handle navigation then veto the event and navigation
     //will not take place, we also need to stop the loading animation
@@ -887,12 +976,38 @@ void WebFrame::OnNewWindow(wxWebViewEvent& evt)
 
     wxLogMessage("%s", "New window; url='" + evt.GetURL() + "'" + flag);
 
-    //If we handle new window events then just load them in this window as we
-    //are a single window browser
-    if(m_tools_handle_new_window->IsChecked())
-        m_browser->LoadURL(evt.GetURL());
+    //If we handle new window events then create a new frame
+    if (!m_tools_handle_new_window->IsChecked())
+        evt.Veto();
 
     UpdateState();
+}
+
+void WebFrame::OnNewWindowFeatures(wxWebViewEvent &evt)
+{
+    wxWebViewWindowFeatures* features = evt.GetTargetWindowFeatures();
+    if (!features)
+        return;
+
+    wxString featureDescription;
+    if (features->GetPosition().IsFullySpecified())
+        featureDescription += wxString::Format(" Position: %d, %d; ", features->GetPosition().x, features->GetPosition().y);
+    if (features->GetSize().IsFullySpecified())
+        featureDescription += wxString::Format(" Size: %d, %d; ", features->GetSize().x, features->GetSize().y);
+    if (features->ShouldDisplayMenuBar())
+        featureDescription += " MenuBar; ";
+    if (features->ShouldDisplayStatusBar())
+        featureDescription += " StatusBar; ";
+    if (features->ShouldDisplayToolBar())
+        featureDescription += " ToolBar; ";
+    if (features->ShouldDisplayScrollBars())
+        featureDescription += " ScrollBars; ";
+
+    wxLogMessage("Window features of child webview are available." + featureDescription);
+
+    // Create child frame with the features specified by window.open() call
+    WebFrame* newFrame = new WebFrame(evt.GetURL(), false, features);
+    newFrame->Show();
 }
 
 void WebFrame::OnTitleChanged(wxWebViewEvent& evt)
@@ -918,6 +1033,13 @@ void WebFrame::OnScriptResult(wxWebViewEvent& evt)
         wxLogError("Async script execution failed: %s", evt.GetString());
     else
         wxLogMessage("Async script result received; value = %s", evt.GetString());
+}
+
+void WebFrame::OnWindowCloseRequested(wxWebViewEvent& WXUNUSED(evt))
+{
+    wxLogMessage("Window close requested");
+    if (!m_isMainFrame)
+        Close();
 }
 
 void WebFrame::OnSetPage(wxCommandEvent& WXUNUSED(evt))
@@ -983,12 +1105,12 @@ void WebFrame::OnToolsClicked(wxCommandEvent& WXUNUSED(evt))
 
     m_context_menu->Check(m_browser->IsContextMenuEnabled());
     m_dev_tools->Check(m_browser->IsAccessToDevToolsEnabled());
+    m_browser_accelerator_keys->Check(m_browser->AreBrowserAcceleratorKeysEnabled());
 
     //Firstly we clear the existing menu items, then we add the current ones
-    wxMenuHistoryMap::const_iterator it;
-    for( it = m_histMenuItems.begin(); it != m_histMenuItems.end(); ++it )
+    for ( auto& item : m_histMenuItems )
     {
-        m_tools_history_menu->Destroy(it->first);
+        m_tools_history_menu->Destroy(item.first);
     }
     m_histMenuItems.clear();
 

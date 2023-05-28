@@ -21,7 +21,6 @@
 #endif // WX_PRECOMP
 
 #include "wx/platinfo.h"
-#include "wx/scopedptr.h"
 #include "wx/uiaction.h"
 
 #if wxUSE_CLIPBOARD
@@ -38,6 +37,8 @@
 #include "textentrytest.h"
 #include "testableframe.h"
 #include "asserthelper.h"
+
+#include <memory>
 
 static const int TEXT_HEIGHT = 200;
 
@@ -56,12 +57,12 @@ class TextCtrlTestCase : public TextEntryTestCase, public CppUnit::TestCase
 public:
     TextCtrlTestCase() { }
 
-    virtual void setUp() wxOVERRIDE;
-    virtual void tearDown() wxOVERRIDE;
+    virtual void setUp() override;
+    virtual void tearDown() override;
 
 private:
-    virtual wxTextEntry *GetTestEntry() const wxOVERRIDE { return m_text; }
-    virtual wxWindow *GetTestWindow() const wxOVERRIDE { return m_text; }
+    virtual wxTextEntry *GetTestEntry() const override { return m_text; }
+    virtual wxWindow *GetTestWindow() const override { return m_text; }
 
     #define SINGLE_AND_MULTI_TESTS() \
         WXUISIM_TEST( ReadOnly ); \
@@ -334,7 +335,7 @@ void TextCtrlTestCase::StreamInput()
 
 void TextCtrlTestCase::Redirector()
 {
-#if wxHAS_TEXT_WINDOW_STREAM && wxUSE_STD_IOSTREAM
+#if wxHAS_TEXT_WINDOW_STREAM
 
     wxStreamToTextRedirector redirect(m_text);
 
@@ -605,7 +606,7 @@ void TextCtrlTestCase::Lines()
     // Verify that wrapped lines count as (at least) lines (but it can be more
     // if it's wrapped more than once).
     //
-    // This currently doesn't work neither in wxGTK, wxUniv, or wxOSX/Cocoa, see
+    // This currently works neither in wxGTK, wxUniv, nor wxOSX/Cocoa, see
     // #12366, where GetNumberOfLines() always returns the number of logical,
     // not physical, lines.
     m_text->AppendText("\n" + wxString(50, '1') + ' ' + wxString(50, '2'));
@@ -698,7 +699,7 @@ void TextCtrlTestCase::DoPositionToCoordsTestWithStyle(long style)
     const wxPoint pos0 = m_text->PositionToCoords(0);
     if ( pos0 == wxDefaultPosition )
     {
-#if ( wxHAS_2CHAR_NEWLINES ) || defined(__WXGTK20__)
+#if ( wxHAS_2CHAR_NEWLINES ) || defined(__WXGTK__)
         CPPUNIT_FAIL( "PositionToCoords() unexpectedly failed." );
 #endif
         return;
@@ -812,7 +813,7 @@ void TextCtrlTestCase::DoPositionToXYMultiLine(long style)
     // empty field
     m_text->Clear();
     const long numChars_0 = 0;
-    wxASSERT(numChars_0 == text.Length());
+    wxASSERT(numChars_0 == text.length());
     XYPos coords_0[numChars_0+1] =
         { { 0, 0 } };
 
@@ -825,14 +826,14 @@ void TextCtrlTestCase::DoPositionToXYMultiLine(long style)
         CPPUNIT_ASSERT_EQUAL( coords_0[i].x, x );
         CPPUNIT_ASSERT_EQUAL( coords_0[i].y, y );
     }
-    ok = m_text->PositionToXY(WXSIZEOF(coords_0), NULL, NULL);
+    ok = m_text->PositionToXY(WXSIZEOF(coords_0), nullptr, nullptr);
     CPPUNIT_ASSERT_EQUAL( false, ok );
 
     // one line
     text = wxS("1234");
     m_text->SetValue(text);
     const long numChars_1 = 4;
-    wxASSERT( numChars_1 == text.Length() );
+    wxASSERT( numChars_1 == text.length() );
     XYPos coords_1[numChars_1+1] =
         { { 0, 0 }, { 1, 0 }, { 2, 0}, { 3, 0 }, { 4, 0 } };
 
@@ -845,7 +846,7 @@ void TextCtrlTestCase::DoPositionToXYMultiLine(long style)
         CPPUNIT_ASSERT_EQUAL( coords_1[i].x, x );
         CPPUNIT_ASSERT_EQUAL( coords_1[i].y, y );
     }
-    ok = m_text->PositionToXY(WXSIZEOF(coords_1), NULL, NULL);
+    ok = m_text->PositionToXY(WXSIZEOF(coords_1), nullptr, nullptr);
     CPPUNIT_ASSERT_EQUAL( false, ok );
 
     // few lines
@@ -864,7 +865,7 @@ void TextCtrlTestCase::DoPositionToXYMultiLine(long style)
 #endif // WXMSW
 
     const long numChars_2 = 8;
-    wxASSERT(numChars_2 == text.Length());
+    wxASSERT(numChars_2 == text.length());
     XYPos coords_2[numChars_2 + 1] =
         { { 0, 0 }, { 1, 0 }, { 2, 0 }, { 3, 0 },
           { 0, 1 }, { 1, 1 }, { 2, 1 },
@@ -893,7 +894,7 @@ void TextCtrlTestCase::DoPositionToXYMultiLine(long style)
         CPPUNIT_ASSERT_EQUAL( ref_coords_2[i].x, x );
         CPPUNIT_ASSERT_EQUAL( ref_coords_2[i].y, y );
     }
-    ok = m_text->PositionToXY(ref_numChars_2 + 1, NULL, NULL);
+    ok = m_text->PositionToXY(ref_numChars_2 + 1, nullptr, nullptr);
     CPPUNIT_ASSERT_EQUAL( false, ok );
 
     // only empty lines
@@ -913,7 +914,7 @@ void TextCtrlTestCase::DoPositionToXYMultiLine(long style)
 #endif // WXMSW
 
     const long numChars_3 = 3;
-    wxASSERT(numChars_3 == text.Length());
+    wxASSERT(numChars_3 == text.length());
     XYPos coords_3[numChars_3+1] =
         { { 0, 0 },
           { 0, 1 },
@@ -943,7 +944,7 @@ void TextCtrlTestCase::DoPositionToXYMultiLine(long style)
         CPPUNIT_ASSERT_EQUAL( ref_coords_3[i].x, x );
         CPPUNIT_ASSERT_EQUAL( ref_coords_3[i].y, y );
     }
-    ok = m_text->PositionToXY(ref_numChars_3 + 1, NULL, NULL);
+    ok = m_text->PositionToXY(ref_numChars_3 + 1, nullptr, nullptr);
     CPPUNIT_ASSERT_EQUAL( false, ok );
 
     // mixed empty/non-empty lines
@@ -965,7 +966,7 @@ void TextCtrlTestCase::DoPositionToXYMultiLine(long style)
 #endif // WXMSW
 
     const long numChars_4 = 10;
-    wxASSERT(numChars_4 == text.Length());
+    wxASSERT(numChars_4 == text.length());
     XYPos coords_4[numChars_4+1] =
         { { 0, 0 }, { 1, 0 }, { 2, 0 }, { 3, 0 },
           { 0, 1 }, { 1, 1 },
@@ -997,7 +998,7 @@ void TextCtrlTestCase::DoPositionToXYMultiLine(long style)
         CPPUNIT_ASSERT_EQUAL( ref_coords_4[i].x, x );
         CPPUNIT_ASSERT_EQUAL( ref_coords_4[i].y, y  );
     }
-    ok = m_text->PositionToXY(ref_numChars_4 + 1, NULL, NULL);
+    ok = m_text->PositionToXY(ref_numChars_4 + 1, nullptr, nullptr);
     CPPUNIT_ASSERT_EQUAL( false, ok );
 }
 
@@ -1194,13 +1195,13 @@ void TextCtrlTestCase::PositionToXYSingleLine()
         CPPUNIT_ASSERT_EQUAL( i, x0 );
         CPPUNIT_ASSERT_EQUAL( 0, y0 );
     }
-    ok = m_text->PositionToXY(numChars_0+1, NULL, NULL);
+    ok = m_text->PositionToXY(numChars_0+1, nullptr, nullptr);
     CPPUNIT_ASSERT_EQUAL( false, ok );
 
     // pure one line
     text = wxS("1234");
     m_text->SetValue(text);
-    const long numChars_1 = text.Length();
+    const long numChars_1 = text.length();
     CPPUNIT_ASSERT_EQUAL( numChars_1, m_text->GetLastPosition() );
     for ( long i = 0; i <= numChars_1; i++ )
     {
@@ -1210,13 +1211,13 @@ void TextCtrlTestCase::PositionToXYSingleLine()
         CPPUNIT_ASSERT_EQUAL( i, x1 );
         CPPUNIT_ASSERT_EQUAL( 0, y1 );
     }
-    ok = m_text->PositionToXY(numChars_1+1, NULL, NULL);
+    ok = m_text->PositionToXY(numChars_1+1, nullptr, nullptr);
     CPPUNIT_ASSERT_EQUAL( false, ok );
 
     // with new line characters
     text = wxS("123\nab\nX");
     m_text->SetValue(text);
-    const long numChars_2 = text.Length();
+    const long numChars_2 = text.length();
     CPPUNIT_ASSERT_EQUAL( numChars_2, m_text->GetLastPosition() );
     for ( long i = 0; i <= numChars_2; i++ )
     {
@@ -1226,7 +1227,7 @@ void TextCtrlTestCase::PositionToXYSingleLine()
         CPPUNIT_ASSERT_EQUAL( i, x2 );
         CPPUNIT_ASSERT_EQUAL( 0, y2 );
     }
-    ok = m_text->PositionToXY(numChars_2+1, NULL, NULL);
+    ok = m_text->PositionToXY(numChars_2+1, nullptr, nullptr);
     CPPUNIT_ASSERT_EQUAL( false, ok );
 }
 
@@ -1294,14 +1295,14 @@ TEST_CASE("wxTextCtrl::ProcessEnter", "[wxTextCtrl][enter]")
         {
         }
 
-        virtual wxControl* Create(wxWindow* parent, int style) const wxOVERRIDE
+        virtual wxControl* Create(wxWindow* parent, int style) const override
         {
             return new wxTextCtrl(parent, wxID_ANY, wxString(),
                                   wxDefaultPosition, wxDefaultSize,
                                   style | m_styleToAdd);
         }
 
-        virtual TextLikeControlCreator* CloneAsMultiLine() const wxOVERRIDE
+        virtual TextLikeControlCreator* CloneAsMultiLine() const override
         {
             return new TextCtrlCreator(wxTE_MULTILINE);
         }
@@ -1319,7 +1320,7 @@ TEST_CASE("wxTextCtrl::GetBestSize", "[wxTextCtrl][best-size]")
     {
         wxSize operator()(const wxString& text) const
         {
-            wxScopedPtr<wxTextCtrl>
+            std::unique_ptr<wxTextCtrl>
                 t(new wxTextCtrl(wxTheApp->GetTopWindow(), wxID_ANY, text,
                                  wxDefaultPosition, wxDefaultSize,
                                  wxTE_MULTILINE));
@@ -1388,7 +1389,7 @@ TEST_CASE("wxTextCtrl::LongPaste", "[wxTextCtrl][clipboard][paste]")
         return;
     }
 
-    wxScopedPtr<wxTextCtrl>
+    std::unique_ptr<wxTextCtrl>
         text(new wxTextCtrl(wxTheApp->GetTopWindow(), wxID_ANY, wxString(),
                             wxDefaultPosition, wxDefaultSize, style));
 
@@ -1431,7 +1432,7 @@ TEST_CASE("wxTextCtrl::EventsOnCreate", "[wxTextCtrl][event]")
 
     EventCounter updated(parent, wxEVT_TEXT);
 
-    wxScopedPtr<wxTextCtrl> text(new wxTextCtrl(parent, wxID_ANY, "Hello"));
+    std::unique_ptr<wxTextCtrl> text(new wxTextCtrl(parent, wxID_ANY, "Hello"));
 
     // Creating the control shouldn't result in any wxEVT_TEXT events.
     CHECK( updated.GetCount() == 0 );
@@ -1445,33 +1446,38 @@ TEST_CASE("wxTextCtrl::EventsOnCreate", "[wxTextCtrl][event]")
 
 TEST_CASE("wxTextCtrl::InitialCanUndo", "[wxTextCtrl][undo]")
 {
-    wxWindow* const parent = wxTheApp->GetTopWindow();
+    long style = 0;
 
-    const long styles[] = { 0, wxTE_RICH, wxTE_RICH2 };
+    SECTION("Plain") { }
+    SECTION("With wxTE_MULTILINE") { style = wxTE_MULTILINE; }
 
-    for ( size_t n = 0; n < WXSIZEOF(styles); n++ )
-    {
-        const long style = styles[n];
+    SECTION("Rich") { style = wxTE_RICH; }
+    SECTION("Rich with wxTE_MULTILINE") { style = wxTE_RICH | wxTE_MULTILINE; }
 
-#ifdef __MINGW32_TOOLCHAIN__
-        if ( style == wxTE_RICH2 )
-        {
-            // We can't call ITextDocument::Undo() in wxMSW code when using
-            // MinGW32, so this test would always fail with it.
-            WARN("Skipping test known to fail with MinGW-32.");
-        }
-        continue;
+#ifndef __MINGW32_TOOLCHAIN__
+    // We can't call ITextDocument::Undo() in wxMSW code when using
+    // MinGW32, so this test would always fail with it.
+    SECTION("Rich v2") { style = wxTE_RICH2; }
+    SECTION("Rich v2 with wxTE_MULTILINE") { style = wxTE_RICH2 | wxTE_MULTILINE; }
 #endif // __MINGW32_TOOLCHAIN__
 
-        INFO("wxTextCtrl with style " << style);
-
-        wxScopedPtr<wxTextCtrl> text(new wxTextCtrl(parent, wxID_ANY, "",
-                                                    wxDefaultPosition,
-                                                    wxDefaultSize,
-                                                    style));
-
-        CHECK( !text->CanUndo() );
+    if ( !style )
+    {
+        // This can happen when explicitly selecting just a single section to
+        // execute -- this code still runs even if the corresponding section is
+        // skipped, so we have to explicitly skip it too in this case.
+        return;
     }
+
+    INFO("wxTextCtrl with style " << style);
+
+    wxWindow* const parent = wxTheApp->GetTopWindow();
+    std::unique_ptr<wxTextCtrl> text(new wxTextCtrl(parent, wxID_ANY, "",
+                                                wxDefaultPosition,
+                                                wxDefaultSize,
+                                                style));
+
+    CHECK( !text->CanUndo() );
 }
 
 // This test would always fail with MinGW-32 for the same reason as described
@@ -1480,14 +1486,16 @@ TEST_CASE("wxTextCtrl::InitialCanUndo", "[wxTextCtrl][undo]")
 
 TEST_CASE("wxTextCtrl::EmptyUndoBuffer", "[wxTextCtrl][undo]")
 {
-    if ( wxIsRunningUnderWine() )
+    // Wine added implementation of ITextDocument::Undo() used by our
+    // EmptyUndoBuffer() in 7.13, see upstream commit ded822777457.
+    wxVersionInfo wineVer;
+    if ( wxIsRunningUnderWine(&wineVer) && !wineVer.AtLeast(7, 13) )
     {
-        // Wine doesn't implement EM_GETOLEINTERFACE and related stuff currently
-        WARN("Skipping test known to fail under Wine.");
+        WARN("Skipping test known to fail under Wine < 7.13.");
         return;
     }
 
-    wxScopedPtr<wxTextCtrl> text(new wxTextCtrl(wxTheApp->GetTopWindow(),
+    std::unique_ptr<wxTextCtrl> text(new wxTextCtrl(wxTheApp->GetTopWindow(),
                                                 wxID_ANY, "",
                                                 wxDefaultPosition,
                                                 wxDefaultSize,

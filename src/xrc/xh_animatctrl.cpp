@@ -16,7 +16,8 @@
 #include "wx/xrc/xh_animatctrl.h"
 #include "wx/animate.h"
 #include "wx/generic/animate.h"
-#include "wx/scopedptr.h"
+
+#include <memory>
 
 wxIMPLEMENT_DYNAMIC_CLASS(wxAnimationCtrlXmlHandler, wxXmlResourceHandler);
 
@@ -29,7 +30,7 @@ wxAnimationCtrlXmlHandler::wxAnimationCtrlXmlHandler() : wxXmlResourceHandler()
 
 wxObject *wxAnimationCtrlXmlHandler::DoCreateResource()
 {
-    wxAnimationCtrlBase *ctrl = NULL;
+    wxAnimationCtrlBase *ctrl = nullptr;
     if ( m_instance )
         ctrl = wxStaticCast(m_instance, wxAnimationCtrlBase);
 
@@ -57,7 +58,7 @@ wxObject *wxAnimationCtrlXmlHandler::DoCreateResource()
     if ( GetBool("hidden", 0) == 1 )
         ctrl->Hide();
 
-    wxScopedPtr<wxAnimation> animation(GetAnimation("animation", ctrl));
+    std::unique_ptr<wxAnimation> animation(GetAnimation("animation", ctrl));
     if ( animation )
         ctrl->SetAnimation(*animation);
 
@@ -82,10 +83,10 @@ wxAnimation* wxXmlResourceHandlerImpl::GetAnimation(const wxString& param,
 {
     wxString name = GetFilePath(GetParamNode(param));
     if ( name.empty() )
-        return NULL;
+        return nullptr;
 
     // load the animation from file
-    wxScopedPtr<wxAnimation> ani(ctrl ? new wxAnimation(ctrl->CreateAnimation())
+    std::unique_ptr<wxAnimation> ani(ctrl ? new wxAnimation(ctrl->CreateAnimation())
                                       : new wxAnimation);
 #if wxUSE_FILESYSTEM
     wxFSFile * const
@@ -106,7 +107,7 @@ wxAnimation* wxXmlResourceHandlerImpl::GetAnimation(const wxString& param,
             param,
             wxString::Format("cannot create animation from \"%s\"", name)
         );
-        return NULL;
+        return nullptr;
     }
 
     return ani.release();

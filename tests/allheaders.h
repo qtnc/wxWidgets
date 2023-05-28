@@ -122,7 +122,6 @@
 #include <wx/dynlib.h>
 #include <wx/dynload.h>
 #include <wx/editlbox.h>
-#include <wx/effects.h>
 #include <wx/encconv.h>
 #include <wx/encinfo.h>
 #include <wx/eventfilter.h>
@@ -217,13 +216,10 @@
 #include <wx/longlong.h>
 #include <wx/lzmastream.h>
 #include <wx/math.h>
-/* Intentionally excluded to avoid deprecation warnings.
 #include <wx/matrix.h>
-*/
 #include <wx/mdi.h>
 #include <wx/mediactrl.h>
 #include <wx/memconf.h>
-#include <wx/memory.h>
 #include <wx/memtext.h>
 #include <wx/menu.h>
 #include <wx/menuitem.h>
@@ -328,7 +324,6 @@
 #include <wx/strconv.h>
 #include <wx/stream.h>
 #include <wx/string.h>
-#include <wx/stringimpl.h>
 #include <wx/stringops.h>
 #include <wx/strvararg.h>
 #include <wx/sysopt.h>
@@ -417,6 +412,10 @@
 #include <wx/xtixml.h>
 #include <wx/zipstrm.h>
 #include <wx/zstream.h>
+#include <wx/propgrid/advprops.h>
+#include <wx/propgrid/editors.h>
+#include <wx/propgrid/manager.h>
+#include <wx/propgrid/propgrid.h>
 
 #if defined(__WINDOWS__)
 #include <wx/dde.h>

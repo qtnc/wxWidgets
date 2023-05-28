@@ -71,7 +71,7 @@ public:
     */
     wxRibbonBarEvent(wxEventType command_type = wxEVT_NULL,
                      int win_id = 0,
-                     wxRibbonPage* page = NULL);
+                     wxRibbonPage* page = nullptr);
 
     /**
         Returns the page being changed to, or being clicked on.
@@ -111,6 +111,16 @@ public:
     bool shown;
 };
 
+/**
+    A vector of wxRibbonPageTabInfo.
+
+    This class is actually a legacy container (see @ref overview_container for
+    more details), but it can, and should be, handled as just a vector of
+    wxRibbonPageTabInfo objects in the application code.
+*/
+class wxRibbonPageTabInfoArray : public std::vector<wxRibbonPageTabInfoArray>
+{
+};
 
 
 /**
@@ -132,8 +142,8 @@ public:
     After all pages have been created, and all controls and panels placed on
     those pages, Realize() must be called.
 
-    @sa wxRibbonPage
-    @sa wxRibbonPanel
+    @see wxRibbonPage
+    @see wxRibbonPanel
 
     @beginStyleTable
     @style{wxRIBBON_BAR_DEFAULT_STYLE}
@@ -289,7 +299,7 @@ public:
     /**
         Get a page by index.
 
-        NULL will be returned if the given index is out of range.
+        @NULL will be returned if the given index is out of range.
     */
     wxRibbonPage* GetPage(int n);
 

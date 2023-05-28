@@ -28,7 +28,10 @@ public:
 // Property classes
 // -----------------------------------------------------------------------
 
-#define wxPG_PROP_PASSWORD  wxPG_PROP_CLASS_SPECIFIC_2
+/** If set, enables ::wxTE_PASSWORD on wxStringProperty editor.
+    @hideinitializer
+*/
+constexpr wxPGPropertyFlags wxPG_PROP_PASSWORD = wxPG_PROP_CLASS_SPECIFIC_2;
 
 /** @class wxStringProperty
     @ingroup classes
@@ -47,7 +50,7 @@ class wxStringProperty : public wxPGProperty
 public:
     wxStringProperty( const wxString& label = wxPG_LABEL,
                       const wxString& name = wxPG_LABEL,
-                      const wxString& value = wxEmptyString );
+                      const wxString& value = wxString() );
     virtual ~wxStringProperty();
 
     virtual wxString ValueToString( wxVariant& value, int argFlags = 0 ) const;
@@ -348,9 +351,12 @@ public:
 
 
 
-// If set, then selection of choices is static and should not be
-// changed (i.e. returns NULL in GetPropertyChoices).
-#define wxPG_PROP_STATIC_CHOICES    wxPG_PROP_CLASS_SPECIFIC_1
+/** If set, then selection of choices is static and should not be
+    changed (i.e. returns @NULL in GetPropertyChoices).
+    Used by wxSystemColourProperty, wxCursorProperty.
+    @hideinitializer
+*/
+constexpr wxPGPropertyFlags wxPG_PROP_STATIC_CHOICES = wxPG_PROP_CLASS_SPECIFIC_1;
 
 /** @class wxEnumProperty
     @ingroup classes
@@ -368,8 +374,8 @@ class wxEnumProperty : public wxPGProperty
 public:
     wxEnumProperty( const wxString& label = wxPG_LABEL,
                     const wxString& name = wxPG_LABEL,
-                    const wxChar* const* labels = NULL,
-                    const long* values = NULL,
+                    const wxChar* const* labels = nullptr,
+                    const long* values = nullptr,
                     int value = 0 );
 
     wxEnumProperty( const wxString& label,
@@ -458,12 +464,12 @@ public:
                         const wxString& name = wxPG_LABEL,
                         const wxArrayString& labels = wxArrayString(),
                         const wxArrayInt& values = wxArrayInt(),
-                        const wxString& value = wxEmptyString );
+                        const wxString& value = wxString() );
 
     wxEditEnumProperty( const wxString& label,
                         const wxString& name,
                         wxPGChoices& choices,
-                        const wxString& value = wxEmptyString );
+                        const wxString& value = wxString() );
 
     // Special constructor for caching choices (used by derived class)
     wxEditEnumProperty( const wxString& label,
@@ -496,7 +502,7 @@ public:
     wxFlagsProperty( const wxString& label,
                      const wxString& name,
                      const wxChar* const* labels,
-                     const long* values = NULL,
+                     const long* values = nullptr,
                      long value = 0 );
 
     wxFlagsProperty( const wxString& label,
@@ -595,8 +601,11 @@ protected:
 };
 
 
-// Indicates first bit usable by derived properties.
-#define wxPG_PROP_SHOW_FULL_FILENAME  wxPG_PROP_CLASS_SPECIFIC_1
+/**
+    If set, full path is shownin wxFileProperty.
+    @hideinitializer
+*/
+constexpr wxPGPropertyFlags wxPG_PROP_SHOW_FULL_FILENAME = wxPG_PROP_CLASS_SPECIFIC_1;
 
 /** @class wxFileProperty
     @ingroup classes
@@ -620,7 +629,7 @@ public:
 
     wxFileProperty( const wxString& label = wxPG_LABEL,
                     const wxString& name = wxPG_LABEL,
-                    const wxString& value = wxEmptyString );
+                    const wxString& value = wxString() );
     virtual ~wxFileProperty ();
 
     virtual void OnSetValue();
@@ -648,7 +657,11 @@ protected:
 };
 
 
-#define wxPG_PROP_ACTIVE_BTN    wxPG_PROP_CLASS_SPECIFIC_1
+/** Flag used in wxLongStringProperty to mark that edit button
+    should be enabled even in the read-only mode.
+    @hideinitializer
+*/
+constexpr wxPGPropertyFlags wxPG_PROP_ACTIVE_BTN = wxPG_PROP_CLASS_SPECIFIC_1;
 
 /** @class wxLongStringProperty
     @ingroup classes
@@ -664,7 +677,7 @@ public:
 
     wxLongStringProperty( const wxString& label = wxPG_LABEL,
                           const wxString& name = wxPG_LABEL,
-                          const wxString& value = wxEmptyString );
+                          const wxString& value = wxString() );
     virtual ~wxLongStringProperty();
 
     virtual wxString ValueToString( wxVariant& value, int argFlags = 0 ) const;
@@ -690,7 +703,7 @@ class wxDirProperty : public wxEditorDialogProperty
 public:
     wxDirProperty( const wxString& label = wxPG_LABEL,
                    const wxString& name = wxPG_LABEL,
-                   const wxString& value = wxEmptyString );
+                   const wxString& value = wxString() );
     virtual ~wxDirProperty();
 
     virtual wxString ValueToString(wxVariant& value, int argFlags = 0) const;
@@ -703,10 +716,15 @@ protected:
 };
 
 
-// wxBoolProperty specific flags
-#define wxPG_PROP_USE_CHECKBOX      wxPG_PROP_CLASS_SPECIFIC_1
-// DCC = Double Click Cycles
-#define wxPG_PROP_USE_DCC           wxPG_PROP_CLASS_SPECIFIC_2
+/** wxBoolProperty, wxFlagsProperty specific flag.
+    @hideinitializer
+*/
+constexpr wxPGPropertyFlags wxPG_PROP_USE_CHECKBOX = wxPG_PROP_CLASS_SPECIFIC_1;
+/** wxBoolProperty, wxFlagsProperty specific flag.
+    DCC = Double Click Cycles
+    @hideinitializer
+*/
+constexpr wxPGPropertyFlags wxPG_PROP_USE_DCC = wxPG_PROP_CLASS_SPECIFIC_2;
 
 
 
