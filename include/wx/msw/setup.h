@@ -124,11 +124,11 @@
 // NDEBUG) or, on the contrary, enable more asserts, including the usually
 // disabled ones, in the debug build (then do it inside #ifndef NDEBUG)
 //
-// #ifdef NDEBUG
-//  #define wxDEBUG_LEVEL 0
-// #else
-//  #define wxDEBUG_LEVEL 2
-// #endif
+//#ifdef NDEBUG
+//#define wxDEBUG_LEVEL 0
+//#else
+//#define wxDEBUG_LEVEL 1
+//#endif
 
 // wxHandleFatalExceptions() may be used to catch the program faults at run
 // time and, instead of terminating the program with a usual GPF message box,
@@ -728,7 +728,7 @@
 // Default is 0 because WebView2 is not always available, set it to 1 if you do have it.
 //
 // Recommended setting: 1 when building for Windows with WebView2 SDK
-#define wxUSE_WEBVIEW_EDGE 0
+#define wxUSE_WEBVIEW_EDGE 1
 
 // Use the Edge (Chromium) wxWebView backend without loader DLL
 //
