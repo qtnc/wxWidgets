@@ -2,7 +2,6 @@
 // Name:        wx/gdicmn.h
 // Purpose:     Common GDI classes, types and declarations
 // Author:      Julian Smart
-// Modified by:
 // Created:     01/02/97
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -331,6 +330,10 @@ public:
     int GetHeight() const { return y; }
 
     bool IsFullySpecified() const { return x != wxDefaultCoord && y != wxDefaultCoord; }
+
+    // Check that this size object is at least as big as the other one in both
+    // directions.
+    bool IsAtLeast(const wxSize& sz) const { return x >= sz.x && y >= sz.y; }
 
     // combine this size with the other one replacing the default (i.e. equal
     // to wxDefaultCoord) components of this object with those of the other
@@ -945,7 +948,7 @@ wxDEPRECATED_MSG("Use wxList directly or just a standard container")
 wxResourceCache : public wxList
 {
 public:
-    wxResourceCache() { }
+    wxResourceCache() = default;
 #if !wxUSE_STD_CONTAINERS
     wxResourceCache(unsigned int keyType) : wxList(keyType) { }
 #endif

@@ -3,7 +3,6 @@
 // Purpose:     declaration of the base class of all config implementations
 //              (see also: fileconf.h and msw/regconf.h and iniconf.h)
 // Author:      Karsten Ballueder & Vadim Zeitlin
-// Modified by:
 // Created:     07.04.98 (adapted from appconf.h)
 // Copyright:   (c) 1997 Karsten Ballueder   Ballueder@usa.net
 //                       Vadim Zeitlin      <zeitlin@dptmaths.ens-cachan.fr>
@@ -139,7 +138,7 @@ public:
   virtual bool GetFirstEntry(wxString& str, long& lIndex) const = 0;
   virtual bool GetNextEntry (wxString& str, long& lIndex) const = 0;
     // get number of entries/subgroups in the current group, with or without
-    // it's subgroups
+    // its subgroups
   virtual size_t GetNumberOfEntries(bool bRecursive = false) const = 0;
   virtual size_t GetNumberOfGroups(bool bRecursive = false) const = 0;
 

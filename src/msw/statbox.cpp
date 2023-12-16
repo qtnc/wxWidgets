@@ -2,7 +2,6 @@
 // Name:        src/msw/statbox.cpp
 // Purpose:     wxStaticBox
 // Author:      Julian Smart
-// Modified by:
 // Created:     04/01/98
 // Copyright:   (c) Julian Smart
 // Licence:     wxWindows licence
@@ -364,6 +363,12 @@ WXLRESULT wxStaticBox::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lPar
     }
 
     return wxControl::MSWWindowProc(nMsg, wParam, lParam);
+}
+
+void wxStaticBox::MSWBeforeDPIChangedEvent(const wxDPIChangedEvent& WXUNUSED(event))
+{
+    if ( m_labelWin )
+        PositionLabelWindow();
 }
 
 // ----------------------------------------------------------------------------

@@ -2,7 +2,6 @@
 // Name:        wx/string.h
 // Purpose:     wxString class
 // Author:      Vadim Zeitlin
-// Modified by:
 // Created:     29/01/98
 // Copyright:   (c) 1998 Vadim Zeitlin <zeitlin@dptmaths.ens-cachan.fr>
 // Licence:     wxWindows licence
@@ -44,6 +43,15 @@
 #include "wx/beforestd.h"
 #include <string>
 #include <utility>
+
+// Check if C++17 <string_view> is available
+#if wxHAS_CXX17_INCLUDE(<string_view>)
+    #include <string_view>
+    #ifdef __cpp_lib_string_view
+        #define wxHAS_STD_STRING_VIEW
+    #endif
+#endif
+
 #include "wx/afterstd.h"
 
 // by default we cache the mapping of the positions in UTF-8 string to the byte
@@ -808,7 +816,7 @@ public:
       WX_STR_ITERATOR_IMPL(iterator, wxChar*, wxUniCharRef);
 
   public:
-      iterator() {}
+      iterator() = default;
       iterator(const iterator& i)
           : m_cur(i.m_cur), m_node(i.str(), &m_cur) {}
       iterator& operator=(const iterator& i)
@@ -857,7 +865,7 @@ public:
       WX_STR_ITERATOR_IMPL(const_iterator, const wxChar*, wxUniChar);
 
   public:
-      const_iterator() {}
+      const_iterator() = default;
       const_iterator(const const_iterator& i)
           : m_cur(i.m_cur), m_node(i.str(), &m_cur) {}
       const_iterator(const iterator& i)
@@ -917,7 +925,7 @@ public:
       WX_STR_ITERATOR_IMPL(iterator, wxChar*, wxUniCharRef);
 
   public:
-      iterator() {}
+      iterator() = default;
       reference operator*()
         { return wxUniCharRef::CreateForString(m_cur); }
 
@@ -950,7 +958,7 @@ public:
       WX_STR_ITERATOR_IMPL(const_iterator, const wxChar*, wxUniChar);
 
   public:
-      const_iterator() {}
+      const_iterator() = default;
       const_iterator(const iterator& i) : m_cur(i.m_cur) {}
 
       const_reference operator*() const
@@ -1030,7 +1038,7 @@ public:
       typedef typename T::reference reference;
       typedef typename T::pointer *pointer;
 
-      reverse_iterator_impl() {}
+      reverse_iterator_impl() = default;
       reverse_iterator_impl(iterator_type i) : m_cur(i) {}
 
       iterator_type base() const { return m_cur; }
@@ -1118,7 +1126,7 @@ private:
 public:
   // constructors and destructor
     // ctor for an empty string
-  wxString() {}
+  wxString() = default;
 
     // copy ctor
   wxString(const wxString& stringSrc) : m_impl(stringSrc.m_impl) { }
@@ -1253,9 +1261,19 @@ public:
         { assign(str.c_str(), str.length()); }
   #endif
 
+#ifdef wxHAS_STD_STRING_VIEW
+    explicit wxString(std::wstring_view view)
+        { assign(view.data(), view.length()); }
+#endif  // wxHAS_STD_STRING_VIEW
+
 #ifndef wxNO_IMPLICIT_WXSTRING_ENCODING
   wxString(const std::string& str)
       { assign(str.c_str(), str.length()); }
+
+    #ifdef wxHAS_STD_STRING_VIEW
+        explicit wxString(std::string_view view)
+            { assign(view.data(), view.length()); }
+    #endif  // wxHAS_STD_STRING_VIEW
 #endif // wxNO_IMPLICIT_WXSTRING_ENCODING
 
   // Also always provide explicit conversions to std::[w]string in any case,
@@ -1700,6 +1718,14 @@ public:
     const wxScopedCharBuffer utf8_str() const { return mb_str(wxMBConvUTF8()); }
 #endif // wxUSE_UNICODE_UTF8/wxUSE_UNICODE_WCHAR
 
+// Conversion from std::string_view is the same for both of the two cases above
+#ifdef wxHAS_STD_STRING_VIEW
+    static wxString FromUTF8Unchecked(std::string_view view)
+      { return FromUTF8Unchecked(view.data(), view.length()); }
+    static wxString FromUTF8(std::string_view view)
+      { return FromUTF8(view.data(), view.length()); }
+#endif // wxHAS_STD_STRING_VIEW
+
     const wxScopedCharBuffer ToUTF8() const { return utf8_str(); }
 
     // functions for storing binary data in wxString:
@@ -1854,6 +1880,29 @@ public:
     // from wxScopedCharBuffer
   wxString& operator=(const wxScopedCharBuffer& s)
     { return assign(s); }
+#endif // wxNO_IMPLICIT_WXSTRING_ENCODING
+
+#if wxUSE_UNICODE_WCHAR
+  wxString& operator=(const std::wstring& str) { m_impl = str; return *this; }
+  wxString& operator=(std::wstring&& str) noexcept { m_impl = std::move(str); return *this; }
+#else // wxUSE_UNICODE_UTF8
+  wxString& operator=(const std::wstring& str)
+    { return assign(str.c_str(), str.length()); }
+#endif
+
+#ifdef wxHAS_STD_STRING_VIEW
+  wxString& operator=(std::wstring_view view)
+    { return assign(view.data(), view.length()); }
+#endif  // wxHAS_STD_STRING_VIEW
+
+#ifndef wxNO_IMPLICIT_WXSTRING_ENCODING
+  wxString& operator=(const std::string& str)
+    { return assign(str.c_str(), str.length()); }
+
+    #ifdef wxHAS_STD_STRING_VIEW
+      wxString& operator=(std::string_view view)
+        { return assign(view.data(), view.length()); }
+    #endif  // wxHAS_STD_STRING_VIEW
 #endif // wxNO_IMPLICIT_WXSTRING_ENCODING
 
   // string concatenation

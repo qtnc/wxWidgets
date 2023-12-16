@@ -3489,7 +3489,6 @@ COND_TOOLKIT_QT_GUI_HDR =  \
 	wx/qt/msgdlg.h \
 	wx/qt/nonownedwnd.h \
 	wx/qt/notebook.h \
-	wx/qt/palette.h \
 	wx/qt/pen.h \
 	wx/qt/popupwin.h \
 	wx/qt/printdlg.h \
@@ -3526,7 +3525,10 @@ COND_TOOLKIT_QT_GUI_HDR =  \
 	wx/qt/dataview.h \
 	wx/qt/dvrenderers.h \
 	$(QT_PLATFORM_HDR) \
-	wx/qt/treectrl.h
+	wx/qt/treectrl.h \
+	wx/generic/paletteg.h \
+	wx/qt/datectrl.h \
+	wx/qt/timectrl.h
 @COND_TOOLKIT_QT@GUI_HDR = $(COND_TOOLKIT_QT_GUI_HDR)
 @COND_TOOLKIT_COCOA@MEDIA_PLATFORM_HDR = 
 @COND_TOOLKIT_GTK@MEDIA_PLATFORM_HDR = 
@@ -5342,9 +5344,9 @@ COND_TOOLKIT_MSW___GUI_SRC_OBJECTS =  \
 	monodll_msw_bmpcbox.o \
 	monodll_msw_hyperlink.o \
 	monodll_msw_calctrl.o \
-	monodll_datectrl.o \
+	monodll_msw_datectrl.o \
 	monodll_msw_datetimectrl.o \
-	monodll_timectrl.o \
+	monodll_msw_timectrl.o \
 	monodll_datecontrols.o \
 	monodll_generic_activityindicator.o \
 	monodll_msw_imaglist.o \
@@ -5407,7 +5409,8 @@ COND_TOOLKIT_OSX_COCOA___GUI_SRC_OBJECTS =  \
 	monodll_taskbarcmn.o \
 	monodll_cocoa_activityindicator.o \
 	monodll_cocoa_statbmp.o \
-	monodll_core_display.o
+	monodll_core_display.o \
+	monodll_cocoa_renderer.o
 @COND_TOOLKIT_OSX_COCOA@__GUI_SRC_OBJECTS = $(COND_TOOLKIT_OSX_COCOA___GUI_SRC_OBJECTS)
 COND_TOOLKIT_OSX_IPHONE___GUI_SRC_OBJECTS =  \
 	$(__OSX_COMMON_SRC_OBJECTS) \
@@ -5497,7 +5500,6 @@ COND_TOOLKIT_QT___GUI_SRC_OBJECTS =  \
 	monodll_qt_minifram.o \
 	monodll_qt_msgdlg.o \
 	monodll_qt_notebook.o \
-	monodll_qt_palette.o \
 	monodll_qt_nonownedwnd.o \
 	monodll_qt_pen.o \
 	monodll_qt_popupwin.o \
@@ -5529,7 +5531,11 @@ COND_TOOLKIT_QT___GUI_SRC_OBJECTS =  \
 	monodll_qt_utils.o \
 	monodll_qt_window.o \
 	$(__QT_PLATFORM_SRC_OBJECTS) \
-	monodll_qt_treectrl.o
+	monodll_qt_treectrl.o \
+	monodll_paletteg.o \
+	monodll_qt_datectrl.o \
+	monodll_qt_timectrl.o \
+	monodll_qt_overlay.o
 @COND_TOOLKIT_QT@__GUI_SRC_OBJECTS = $(COND_TOOLKIT_QT___GUI_SRC_OBJECTS)
 @COND_PLATFORM_UNIX_1@__QT_PLATFORM_SRC_OBJECTS = \
 @COND_PLATFORM_UNIX_1@	monodll_unix_dialup.o monodll_unix_joystick.o \
@@ -7102,9 +7108,9 @@ COND_TOOLKIT_MSW___GUI_SRC_OBJECTS_1 =  \
 	monolib_msw_bmpcbox.o \
 	monolib_msw_hyperlink.o \
 	monolib_msw_calctrl.o \
-	monolib_datectrl.o \
+	monolib_msw_datectrl.o \
 	monolib_msw_datetimectrl.o \
-	monolib_timectrl.o \
+	monolib_msw_timectrl.o \
 	monolib_datecontrols.o \
 	monolib_generic_activityindicator.o \
 	monolib_msw_imaglist.o \
@@ -7167,7 +7173,8 @@ COND_TOOLKIT_OSX_COCOA___GUI_SRC_OBJECTS_1 =  \
 	monolib_taskbarcmn.o \
 	monolib_cocoa_activityindicator.o \
 	monolib_cocoa_statbmp.o \
-	monolib_core_display.o
+	monolib_core_display.o \
+	monolib_cocoa_renderer.o
 @COND_TOOLKIT_OSX_COCOA@__GUI_SRC_OBJECTS_1 = $(COND_TOOLKIT_OSX_COCOA___GUI_SRC_OBJECTS_1)
 COND_TOOLKIT_OSX_IPHONE___GUI_SRC_OBJECTS_1 =  \
 	$(__OSX_COMMON_SRC_OBJECTS_0) \
@@ -7257,7 +7264,6 @@ COND_TOOLKIT_QT___GUI_SRC_OBJECTS_1 =  \
 	monolib_qt_minifram.o \
 	monolib_qt_msgdlg.o \
 	monolib_qt_notebook.o \
-	monolib_qt_palette.o \
 	monolib_qt_nonownedwnd.o \
 	monolib_qt_pen.o \
 	monolib_qt_popupwin.o \
@@ -7289,7 +7295,11 @@ COND_TOOLKIT_QT___GUI_SRC_OBJECTS_1 =  \
 	monolib_qt_utils.o \
 	monolib_qt_window.o \
 	$(__QT_PLATFORM_SRC_OBJECTS_1) \
-	monolib_qt_treectrl.o
+	monolib_qt_treectrl.o \
+	monolib_paletteg.o \
+	monolib_qt_datectrl.o \
+	monolib_qt_timectrl.o \
+	monolib_qt_overlay.o
 @COND_TOOLKIT_QT@__GUI_SRC_OBJECTS_1 = $(COND_TOOLKIT_QT___GUI_SRC_OBJECTS_1)
 @COND_PLATFORM_UNIX_1@__QT_PLATFORM_SRC_OBJECTS_1 = \
 @COND_PLATFORM_UNIX_1@	monolib_unix_dialup.o monolib_unix_joystick.o \
@@ -9014,9 +9024,9 @@ COND_TOOLKIT_MSW___GUI_SRC_OBJECTS_2 =  \
 	coredll_msw_bmpcbox.o \
 	coredll_msw_hyperlink.o \
 	coredll_msw_calctrl.o \
-	coredll_datectrl.o \
+	coredll_msw_datectrl.o \
 	coredll_msw_datetimectrl.o \
-	coredll_timectrl.o \
+	coredll_msw_timectrl.o \
 	coredll_datecontrols.o \
 	coredll_generic_activityindicator.o \
 	coredll_msw_imaglist.o \
@@ -9079,7 +9089,8 @@ COND_TOOLKIT_OSX_COCOA___GUI_SRC_OBJECTS_2 =  \
 	coredll_taskbarcmn.o \
 	coredll_cocoa_activityindicator.o \
 	coredll_cocoa_statbmp.o \
-	coredll_core_display.o
+	coredll_core_display.o \
+	coredll_cocoa_renderer.o
 @COND_TOOLKIT_OSX_COCOA@__GUI_SRC_OBJECTS_2 = $(COND_TOOLKIT_OSX_COCOA___GUI_SRC_OBJECTS_2)
 COND_TOOLKIT_OSX_IPHONE___GUI_SRC_OBJECTS_2 =  \
 	$(__OSX_COMMON_SRC_OBJECTS_8) \
@@ -9169,7 +9180,6 @@ COND_TOOLKIT_QT___GUI_SRC_OBJECTS_2 =  \
 	coredll_qt_minifram.o \
 	coredll_qt_msgdlg.o \
 	coredll_qt_notebook.o \
-	coredll_qt_palette.o \
 	coredll_qt_nonownedwnd.o \
 	coredll_qt_pen.o \
 	coredll_qt_popupwin.o \
@@ -9201,7 +9211,11 @@ COND_TOOLKIT_QT___GUI_SRC_OBJECTS_2 =  \
 	coredll_qt_utils.o \
 	coredll_qt_window.o \
 	$(__QT_PLATFORM_SRC_OBJECTS_2) \
-	coredll_qt_treectrl.o
+	coredll_qt_treectrl.o \
+	coredll_paletteg.o \
+	coredll_qt_datectrl.o \
+	coredll_qt_timectrl.o \
+	coredll_qt_overlay.o
 @COND_TOOLKIT_QT@__GUI_SRC_OBJECTS_2 = $(COND_TOOLKIT_QT___GUI_SRC_OBJECTS_2)
 @COND_PLATFORM_UNIX_1@__QT_PLATFORM_SRC_OBJECTS_2 = \
 @COND_PLATFORM_UNIX_1@	coredll_unix_dialup.o coredll_unix_joystick.o \
@@ -10502,9 +10516,9 @@ COND_TOOLKIT_MSW___GUI_SRC_OBJECTS_3 =  \
 	corelib_msw_bmpcbox.o \
 	corelib_msw_hyperlink.o \
 	corelib_msw_calctrl.o \
-	corelib_datectrl.o \
+	corelib_msw_datectrl.o \
 	corelib_msw_datetimectrl.o \
-	corelib_timectrl.o \
+	corelib_msw_timectrl.o \
 	corelib_datecontrols.o \
 	corelib_generic_activityindicator.o \
 	corelib_msw_imaglist.o \
@@ -10567,7 +10581,8 @@ COND_TOOLKIT_OSX_COCOA___GUI_SRC_OBJECTS_3 =  \
 	corelib_taskbarcmn.o \
 	corelib_cocoa_activityindicator.o \
 	corelib_cocoa_statbmp.o \
-	corelib_core_display.o
+	corelib_core_display.o \
+	corelib_cocoa_renderer.o
 @COND_TOOLKIT_OSX_COCOA@__GUI_SRC_OBJECTS_3 = $(COND_TOOLKIT_OSX_COCOA___GUI_SRC_OBJECTS_3)
 COND_TOOLKIT_OSX_IPHONE___GUI_SRC_OBJECTS_3 =  \
 	$(__OSX_COMMON_SRC_OBJECTS_9) \
@@ -10657,7 +10672,6 @@ COND_TOOLKIT_QT___GUI_SRC_OBJECTS_3 =  \
 	corelib_qt_minifram.o \
 	corelib_qt_msgdlg.o \
 	corelib_qt_notebook.o \
-	corelib_qt_palette.o \
 	corelib_qt_nonownedwnd.o \
 	corelib_qt_pen.o \
 	corelib_qt_popupwin.o \
@@ -10689,7 +10703,11 @@ COND_TOOLKIT_QT___GUI_SRC_OBJECTS_3 =  \
 	corelib_qt_utils.o \
 	corelib_qt_window.o \
 	$(__QT_PLATFORM_SRC_OBJECTS_3) \
-	corelib_qt_treectrl.o
+	corelib_qt_treectrl.o \
+	corelib_paletteg.o \
+	corelib_qt_datectrl.o \
+	corelib_qt_timectrl.o \
+	corelib_qt_overlay.o
 @COND_TOOLKIT_QT@__GUI_SRC_OBJECTS_3 = $(COND_TOOLKIT_QT___GUI_SRC_OBJECTS_3)
 @COND_PLATFORM_UNIX_1@__QT_PLATFORM_SRC_OBJECTS_3 = \
 @COND_PLATFORM_UNIX_1@	corelib_unix_dialup.o corelib_unix_joystick.o \
@@ -12241,7 +12259,6 @@ COND_PLATFORM_MACOSX_1___OSX_COMMON_SRC_OBJECTS =  \
 	monodll_carbon_mdi.o \
 	monodll_carbon_metafile.o \
 	monodll_carbon_popupwin.o \
-	monodll_carbon_renderer.o \
 	monodll_statbrma.o \
 	monodll_carbon_region.o \
 	monodll_utilscocoa.o \
@@ -12375,7 +12392,6 @@ COND_PLATFORM_MACOSX_1___OSX_COMMON_SRC_OBJECTS_0 =  \
 	monolib_carbon_mdi.o \
 	monolib_carbon_metafile.o \
 	monolib_carbon_popupwin.o \
-	monolib_carbon_renderer.o \
 	monolib_statbrma.o \
 	monolib_carbon_region.o \
 	monolib_utilscocoa.o \
@@ -12508,7 +12524,6 @@ COND_PLATFORM_MACOSX_1___OSX_COMMON_SRC_OBJECTS_8 =  \
 	coredll_carbon_mdi.o \
 	coredll_carbon_metafile.o \
 	coredll_carbon_popupwin.o \
-	coredll_carbon_renderer.o \
 	coredll_statbrma.o \
 	coredll_carbon_region.o \
 	coredll_utilscocoa.o \
@@ -12641,7 +12656,6 @@ COND_PLATFORM_MACOSX_1___OSX_COMMON_SRC_OBJECTS_9 =  \
 	corelib_carbon_mdi.o \
 	corelib_carbon_metafile.o \
 	corelib_carbon_popupwin.o \
-	corelib_carbon_renderer.o \
 	corelib_statbrma.o \
 	corelib_carbon_region.o \
 	corelib_utilscocoa.o \
@@ -15300,13 +15314,13 @@ monodll_msw_hyperlink.o: $(srcdir)/src/msw/hyperlink.cpp $(MONODLL_ODEP)
 monodll_msw_calctrl.o: $(srcdir)/src/msw/calctrl.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/msw/calctrl.cpp
 
-monodll_datectrl.o: $(srcdir)/src/msw/datectrl.cpp $(MONODLL_ODEP)
+monodll_msw_datectrl.o: $(srcdir)/src/msw/datectrl.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/msw/datectrl.cpp
 
 monodll_msw_datetimectrl.o: $(srcdir)/src/msw/datetimectrl.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/msw/datetimectrl.cpp
 
-monodll_timectrl.o: $(srcdir)/src/msw/timectrl.cpp $(MONODLL_ODEP)
+monodll_msw_timectrl.o: $(srcdir)/src/msw/timectrl.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/msw/timectrl.cpp
 
 monodll_datecontrols.o: $(srcdir)/src/msw/datecontrols.cpp $(MONODLL_ODEP)
@@ -15476,6 +15490,9 @@ monodll_cocoa_statbmp.o: $(srcdir)/src/osx/cocoa/statbmp.mm $(MONODLL_ODEP)
 
 monodll_core_display.o: $(srcdir)/src/osx/core/display.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/osx/core/display.cpp
+
+monodll_cocoa_renderer.o: $(srcdir)/src/osx/cocoa/renderer.mm $(MONODLL_ODEP)
+	$(CXXC) -c -o $@ $(MONODLL_OBJCXXFLAGS) $(srcdir)/src/osx/cocoa/renderer.mm
 
 monodll_regiong.o: $(srcdir)/src/generic/regiong.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/generic/regiong.cpp
@@ -15687,9 +15704,6 @@ monodll_qt_msgdlg.o: $(srcdir)/src/qt/msgdlg.cpp $(MONODLL_ODEP)
 monodll_qt_notebook.o: $(srcdir)/src/qt/notebook.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/qt/notebook.cpp
 
-monodll_qt_palette.o: $(srcdir)/src/qt/palette.cpp $(MONODLL_ODEP)
-	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/qt/palette.cpp
-
 monodll_qt_nonownedwnd.o: $(srcdir)/src/qt/nonownedwnd.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/qt/nonownedwnd.cpp
 
@@ -15785,6 +15799,15 @@ monodll_qt_graphics.o: $(srcdir)/src/qt/graphics.cpp $(MONODLL_ODEP)
 
 monodll_qt_treectrl.o: $(srcdir)/src/qt/treectrl.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/qt/treectrl.cpp
+
+monodll_qt_datectrl.o: $(srcdir)/src/qt/datectrl.cpp $(MONODLL_ODEP)
+	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/qt/datectrl.cpp
+
+monodll_qt_timectrl.o: $(srcdir)/src/qt/timectrl.cpp $(MONODLL_ODEP)
+	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/qt/timectrl.cpp
+
+monodll_qt_overlay.o: $(srcdir)/src/qt/overlay.cpp $(MONODLL_ODEP)
+	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/qt/overlay.cpp
 
 monodll_mdig.o: $(srcdir)/src/generic/mdig.cpp $(MONODLL_ODEP)
 	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/generic/mdig.cpp
@@ -16934,6 +16957,9 @@ monodll_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(MONODLL_ODEP)
 
 @COND_TOOLKIT_DFB_USE_GUI_1@monodll_generic_icon.o: $(srcdir)/src/generic/icon.cpp $(MONODLL_ODEP)
 @COND_TOOLKIT_DFB_USE_GUI_1@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/generic/icon.cpp
+
+@COND_TOOLKIT_QT_USE_GUI_1_WXUNIV_0@monodll_paletteg.o: $(srcdir)/src/generic/paletteg.cpp $(MONODLL_ODEP)
+@COND_TOOLKIT_QT_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/generic/paletteg.cpp
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@monodll_paletteg.o: $(srcdir)/src/generic/paletteg.cpp $(MONODLL_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/generic/paletteg.cpp
@@ -18714,12 +18740,6 @@ monodll_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(MONODLL_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@monodll_carbon_popupwin.o: $(srcdir)/src/osx/carbon/popupwin.cpp $(MONODLL_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/osx/carbon/popupwin.cpp
 
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@monodll_carbon_renderer.o: $(srcdir)/src/osx/carbon/renderer.cpp $(MONODLL_ODEP)
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/osx/carbon/renderer.cpp
-
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@monodll_carbon_renderer.o: $(srcdir)/src/osx/carbon/renderer.cpp $(MONODLL_ODEP)
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/osx/carbon/renderer.cpp
-
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@monodll_statbrma.o: $(srcdir)/src/osx/carbon/statbrma.cpp $(MONODLL_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONODLL_CXXFLAGS) $(srcdir)/src/osx/carbon/statbrma.cpp
 
@@ -20040,13 +20060,13 @@ monolib_msw_hyperlink.o: $(srcdir)/src/msw/hyperlink.cpp $(MONOLIB_ODEP)
 monolib_msw_calctrl.o: $(srcdir)/src/msw/calctrl.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/msw/calctrl.cpp
 
-monolib_datectrl.o: $(srcdir)/src/msw/datectrl.cpp $(MONOLIB_ODEP)
+monolib_msw_datectrl.o: $(srcdir)/src/msw/datectrl.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/msw/datectrl.cpp
 
 monolib_msw_datetimectrl.o: $(srcdir)/src/msw/datetimectrl.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/msw/datetimectrl.cpp
 
-monolib_timectrl.o: $(srcdir)/src/msw/timectrl.cpp $(MONOLIB_ODEP)
+monolib_msw_timectrl.o: $(srcdir)/src/msw/timectrl.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/msw/timectrl.cpp
 
 monolib_datecontrols.o: $(srcdir)/src/msw/datecontrols.cpp $(MONOLIB_ODEP)
@@ -20216,6 +20236,9 @@ monolib_cocoa_statbmp.o: $(srcdir)/src/osx/cocoa/statbmp.mm $(MONOLIB_ODEP)
 
 monolib_core_display.o: $(srcdir)/src/osx/core/display.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/osx/core/display.cpp
+
+monolib_cocoa_renderer.o: $(srcdir)/src/osx/cocoa/renderer.mm $(MONOLIB_ODEP)
+	$(CXXC) -c -o $@ $(MONOLIB_OBJCXXFLAGS) $(srcdir)/src/osx/cocoa/renderer.mm
 
 monolib_regiong.o: $(srcdir)/src/generic/regiong.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/generic/regiong.cpp
@@ -20427,9 +20450,6 @@ monolib_qt_msgdlg.o: $(srcdir)/src/qt/msgdlg.cpp $(MONOLIB_ODEP)
 monolib_qt_notebook.o: $(srcdir)/src/qt/notebook.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/qt/notebook.cpp
 
-monolib_qt_palette.o: $(srcdir)/src/qt/palette.cpp $(MONOLIB_ODEP)
-	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/qt/palette.cpp
-
 monolib_qt_nonownedwnd.o: $(srcdir)/src/qt/nonownedwnd.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/qt/nonownedwnd.cpp
 
@@ -20525,6 +20545,15 @@ monolib_qt_graphics.o: $(srcdir)/src/qt/graphics.cpp $(MONOLIB_ODEP)
 
 monolib_qt_treectrl.o: $(srcdir)/src/qt/treectrl.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/qt/treectrl.cpp
+
+monolib_qt_datectrl.o: $(srcdir)/src/qt/datectrl.cpp $(MONOLIB_ODEP)
+	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/qt/datectrl.cpp
+
+monolib_qt_timectrl.o: $(srcdir)/src/qt/timectrl.cpp $(MONOLIB_ODEP)
+	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/qt/timectrl.cpp
+
+monolib_qt_overlay.o: $(srcdir)/src/qt/overlay.cpp $(MONOLIB_ODEP)
+	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/qt/overlay.cpp
 
 monolib_mdig.o: $(srcdir)/src/generic/mdig.cpp $(MONOLIB_ODEP)
 	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/generic/mdig.cpp
@@ -21674,6 +21703,9 @@ monolib_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(MONOLIB_ODEP)
 
 @COND_TOOLKIT_DFB_USE_GUI_1@monolib_generic_icon.o: $(srcdir)/src/generic/icon.cpp $(MONOLIB_ODEP)
 @COND_TOOLKIT_DFB_USE_GUI_1@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/generic/icon.cpp
+
+@COND_TOOLKIT_QT_USE_GUI_1_WXUNIV_0@monolib_paletteg.o: $(srcdir)/src/generic/paletteg.cpp $(MONOLIB_ODEP)
+@COND_TOOLKIT_QT_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/generic/paletteg.cpp
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@monolib_paletteg.o: $(srcdir)/src/generic/paletteg.cpp $(MONOLIB_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/generic/paletteg.cpp
@@ -23453,12 +23485,6 @@ monolib_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(MONOLIB_ODEP)
 
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@monolib_carbon_popupwin.o: $(srcdir)/src/osx/carbon/popupwin.cpp $(MONOLIB_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/osx/carbon/popupwin.cpp
-
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@monolib_carbon_renderer.o: $(srcdir)/src/osx/carbon/renderer.cpp $(MONOLIB_ODEP)
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/osx/carbon/renderer.cpp
-
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@monolib_carbon_renderer.o: $(srcdir)/src/osx/carbon/renderer.cpp $(MONOLIB_ODEP)
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/osx/carbon/renderer.cpp
 
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@monolib_statbrma.o: $(srcdir)/src/osx/carbon/statbrma.cpp $(MONOLIB_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(MONOLIB_CXXFLAGS) $(srcdir)/src/osx/carbon/statbrma.cpp
@@ -25458,13 +25484,13 @@ coredll_msw_hyperlink.o: $(srcdir)/src/msw/hyperlink.cpp $(COREDLL_ODEP)
 coredll_msw_calctrl.o: $(srcdir)/src/msw/calctrl.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/msw/calctrl.cpp
 
-coredll_datectrl.o: $(srcdir)/src/msw/datectrl.cpp $(COREDLL_ODEP)
+coredll_msw_datectrl.o: $(srcdir)/src/msw/datectrl.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/msw/datectrl.cpp
 
 coredll_msw_datetimectrl.o: $(srcdir)/src/msw/datetimectrl.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/msw/datetimectrl.cpp
 
-coredll_timectrl.o: $(srcdir)/src/msw/timectrl.cpp $(COREDLL_ODEP)
+coredll_msw_timectrl.o: $(srcdir)/src/msw/timectrl.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/msw/timectrl.cpp
 
 coredll_datecontrols.o: $(srcdir)/src/msw/datecontrols.cpp $(COREDLL_ODEP)
@@ -25634,6 +25660,9 @@ coredll_cocoa_statbmp.o: $(srcdir)/src/osx/cocoa/statbmp.mm $(COREDLL_ODEP)
 
 coredll_core_display.o: $(srcdir)/src/osx/core/display.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/osx/core/display.cpp
+
+coredll_cocoa_renderer.o: $(srcdir)/src/osx/cocoa/renderer.mm $(COREDLL_ODEP)
+	$(CXXC) -c -o $@ $(COREDLL_OBJCXXFLAGS) $(srcdir)/src/osx/cocoa/renderer.mm
 
 coredll_regiong.o: $(srcdir)/src/generic/regiong.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/generic/regiong.cpp
@@ -25845,9 +25874,6 @@ coredll_qt_msgdlg.o: $(srcdir)/src/qt/msgdlg.cpp $(COREDLL_ODEP)
 coredll_qt_notebook.o: $(srcdir)/src/qt/notebook.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/qt/notebook.cpp
 
-coredll_qt_palette.o: $(srcdir)/src/qt/palette.cpp $(COREDLL_ODEP)
-	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/qt/palette.cpp
-
 coredll_qt_nonownedwnd.o: $(srcdir)/src/qt/nonownedwnd.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/qt/nonownedwnd.cpp
 
@@ -25943,6 +25969,15 @@ coredll_qt_graphics.o: $(srcdir)/src/qt/graphics.cpp $(COREDLL_ODEP)
 
 coredll_qt_treectrl.o: $(srcdir)/src/qt/treectrl.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/qt/treectrl.cpp
+
+coredll_qt_datectrl.o: $(srcdir)/src/qt/datectrl.cpp $(COREDLL_ODEP)
+	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/qt/datectrl.cpp
+
+coredll_qt_timectrl.o: $(srcdir)/src/qt/timectrl.cpp $(COREDLL_ODEP)
+	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/qt/timectrl.cpp
+
+coredll_qt_overlay.o: $(srcdir)/src/qt/overlay.cpp $(COREDLL_ODEP)
+	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/qt/overlay.cpp
 
 coredll_mdig.o: $(srcdir)/src/generic/mdig.cpp $(COREDLL_ODEP)
 	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/generic/mdig.cpp
@@ -26510,6 +26545,9 @@ coredll_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(COREDLL_ODEP)
 
 @COND_TOOLKIT_DFB_USE_GUI_1@coredll_generic_icon.o: $(srcdir)/src/generic/icon.cpp $(COREDLL_ODEP)
 @COND_TOOLKIT_DFB_USE_GUI_1@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/generic/icon.cpp
+
+@COND_TOOLKIT_QT_USE_GUI_1_WXUNIV_0@coredll_paletteg.o: $(srcdir)/src/generic/paletteg.cpp $(COREDLL_ODEP)
+@COND_TOOLKIT_QT_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/generic/paletteg.cpp
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@coredll_paletteg.o: $(srcdir)/src/generic/paletteg.cpp $(COREDLL_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/generic/paletteg.cpp
@@ -28290,12 +28328,6 @@ coredll_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(COREDLL_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@coredll_carbon_popupwin.o: $(srcdir)/src/osx/carbon/popupwin.cpp $(COREDLL_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/osx/carbon/popupwin.cpp
 
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@coredll_carbon_renderer.o: $(srcdir)/src/osx/carbon/renderer.cpp $(COREDLL_ODEP)
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/osx/carbon/renderer.cpp
-
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@coredll_carbon_renderer.o: $(srcdir)/src/osx/carbon/renderer.cpp $(COREDLL_ODEP)
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/osx/carbon/renderer.cpp
-
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@coredll_statbrma.o: $(srcdir)/src/osx/carbon/statbrma.cpp $(COREDLL_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(COREDLL_CXXFLAGS) $(srcdir)/src/osx/carbon/statbrma.cpp
 
@@ -29172,13 +29204,13 @@ corelib_msw_hyperlink.o: $(srcdir)/src/msw/hyperlink.cpp $(CORELIB_ODEP)
 corelib_msw_calctrl.o: $(srcdir)/src/msw/calctrl.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/msw/calctrl.cpp
 
-corelib_datectrl.o: $(srcdir)/src/msw/datectrl.cpp $(CORELIB_ODEP)
+corelib_msw_datectrl.o: $(srcdir)/src/msw/datectrl.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/msw/datectrl.cpp
 
 corelib_msw_datetimectrl.o: $(srcdir)/src/msw/datetimectrl.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/msw/datetimectrl.cpp
 
-corelib_timectrl.o: $(srcdir)/src/msw/timectrl.cpp $(CORELIB_ODEP)
+corelib_msw_timectrl.o: $(srcdir)/src/msw/timectrl.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/msw/timectrl.cpp
 
 corelib_datecontrols.o: $(srcdir)/src/msw/datecontrols.cpp $(CORELIB_ODEP)
@@ -29348,6 +29380,9 @@ corelib_cocoa_statbmp.o: $(srcdir)/src/osx/cocoa/statbmp.mm $(CORELIB_ODEP)
 
 corelib_core_display.o: $(srcdir)/src/osx/core/display.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/osx/core/display.cpp
+
+corelib_cocoa_renderer.o: $(srcdir)/src/osx/cocoa/renderer.mm $(CORELIB_ODEP)
+	$(CXXC) -c -o $@ $(CORELIB_OBJCXXFLAGS) $(srcdir)/src/osx/cocoa/renderer.mm
 
 corelib_regiong.o: $(srcdir)/src/generic/regiong.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/generic/regiong.cpp
@@ -29559,9 +29594,6 @@ corelib_qt_msgdlg.o: $(srcdir)/src/qt/msgdlg.cpp $(CORELIB_ODEP)
 corelib_qt_notebook.o: $(srcdir)/src/qt/notebook.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/qt/notebook.cpp
 
-corelib_qt_palette.o: $(srcdir)/src/qt/palette.cpp $(CORELIB_ODEP)
-	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/qt/palette.cpp
-
 corelib_qt_nonownedwnd.o: $(srcdir)/src/qt/nonownedwnd.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/qt/nonownedwnd.cpp
 
@@ -29657,6 +29689,15 @@ corelib_qt_graphics.o: $(srcdir)/src/qt/graphics.cpp $(CORELIB_ODEP)
 
 corelib_qt_treectrl.o: $(srcdir)/src/qt/treectrl.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/qt/treectrl.cpp
+
+corelib_qt_datectrl.o: $(srcdir)/src/qt/datectrl.cpp $(CORELIB_ODEP)
+	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/qt/datectrl.cpp
+
+corelib_qt_timectrl.o: $(srcdir)/src/qt/timectrl.cpp $(CORELIB_ODEP)
+	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/qt/timectrl.cpp
+
+corelib_qt_overlay.o: $(srcdir)/src/qt/overlay.cpp $(CORELIB_ODEP)
+	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/qt/overlay.cpp
 
 corelib_mdig.o: $(srcdir)/src/generic/mdig.cpp $(CORELIB_ODEP)
 	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/generic/mdig.cpp
@@ -30224,6 +30265,9 @@ corelib_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(CORELIB_ODEP)
 
 @COND_TOOLKIT_DFB_USE_GUI_1@corelib_generic_icon.o: $(srcdir)/src/generic/icon.cpp $(CORELIB_ODEP)
 @COND_TOOLKIT_DFB_USE_GUI_1@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/generic/icon.cpp
+
+@COND_TOOLKIT_QT_USE_GUI_1_WXUNIV_0@corelib_paletteg.o: $(srcdir)/src/generic/paletteg.cpp $(CORELIB_ODEP)
+@COND_TOOLKIT_QT_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/generic/paletteg.cpp
 
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@corelib_paletteg.o: $(srcdir)/src/generic/paletteg.cpp $(CORELIB_ODEP)
 @COND_TOOLKIT_GTK_TOOLKIT_VERSION_4_USE_GUI_1@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/generic/paletteg.cpp
@@ -32003,12 +32047,6 @@ corelib_sound_sdl.o: $(srcdir)/src/unix/sound_sdl.cpp $(CORELIB_ODEP)
 
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@corelib_carbon_popupwin.o: $(srcdir)/src/osx/carbon/popupwin.cpp $(CORELIB_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/osx/carbon/popupwin.cpp
-
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@corelib_carbon_renderer.o: $(srcdir)/src/osx/carbon/renderer.cpp $(CORELIB_ODEP)
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/osx/carbon/renderer.cpp
-
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@corelib_carbon_renderer.o: $(srcdir)/src/osx/carbon/renderer.cpp $(CORELIB_ODEP)
-@COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_IPHONE_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/osx/carbon/renderer.cpp
 
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@corelib_statbrma.o: $(srcdir)/src/osx/carbon/statbrma.cpp $(CORELIB_ODEP)
 @COND_PLATFORM_MACOSX_1_TOOLKIT_OSX_COCOA_USE_GUI_1_WXUNIV_0@	$(CXXC) -c -o $@ $(CORELIB_CXXFLAGS) $(srcdir)/src/osx/carbon/statbrma.cpp
@@ -33955,7 +33993,7 @@ CP_P = cp -p
 ALL_DIST: distrib_clean
 	mkdir _dist_dir
 	mkdir $(DISTDIR)
-	$(CP_P) $(WXDIR)/configure.in $(DISTDIR)
+	$(CP_P) $(WXDIR)/configure.ac $(DISTDIR)
 	$(CP_P) $(WXDIR)/configure $(DISTDIR)
 	$(CP_P) $(WXDIR)/autoconf_inc.m4 $(DISTDIR)
 	$(CP_P) $(WXDIR)/wxwin.m4 $(DISTDIR)
@@ -34145,9 +34183,9 @@ ALL_GUI_DIST: ALL_DIST
 
 BASE_DIST: ALL_DIST INTL_DIST
 	# make --disable-gui the default
-	rm $(DISTDIR)/configure.in
+	rm $(DISTDIR)/configure.ac
 	sed 's/DEFAULT_wxUSE_GUI=yes/DEFAULT_wxUSE_GUI=no/' \
-		$(WXDIR)/configure.in > $(DISTDIR)/configure.in
+		$(WXDIR)/configure.ac > $(DISTDIR)/configure.ac
 	rm $(DISTDIR)/configure
 	sed 's/DEFAULT_wxUSE_GUI=yes/DEFAULT_wxUSE_GUI=no/' \
 		$(WXDIR)/configure > $(DISTDIR)/configure

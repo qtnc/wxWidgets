@@ -2,7 +2,6 @@
 // Name:        wx/propgrid/property.h
 // Purpose:     wxPGProperty and related support classes
 // Author:      Jaakko Salli
-// Modified by:
 // Created:     2008-08-23
 // Copyright:   (c) Jaakko Salli
 // Licence:     wxWindows licence
@@ -329,7 +328,7 @@ wxPG_PROP_CUSTOMIMAGE               = 0x0008,
 // dialog and choice are ok).
 wxPG_PROP_NOEDITOR                  = 0x0010,
 
-// Property is collapsed, ie. it's children are hidden.
+// Property is collapsed, ie. its children are hidden.
 wxPG_PROP_COLLAPSED                 = 0x0020,
 
 // If property is selected, then indicates that validation failed for pending
@@ -390,19 +389,28 @@ wxPG_PROP_USES_COMMON_VALUE         = 0x00020000,
 // See wxPGProperty::SetAutoUnspecified().
 wxPG_PROP_AUTO_UNSPECIFIED          = 0x00040000,
 
-// Indicates the bit usable by derived properties.
-wxPG_PROP_CLASS_SPECIFIC_1          = 0x00080000,
+// For internal use only.
+wxPG_PROP_RESERVED_1                = 0x00080000,
 
-// Indicates the bit usable by derived properties.
-wxPG_PROP_CLASS_SPECIFIC_2          = 0x00100000,
+// For internal use only.
+wxPG_PROP_RESERVED_2                = 0x00100000,
 
 // Indicates that the property is being deleted and should be ignored.
 wxPG_PROP_BEING_DELETED             = 0x00200000,
 
-// Indicates the bit usable by derived properties.
-wxPG_PROP_CLASS_SPECIFIC_3          = 0x00400000
-
+// For internal use only.
+wxPG_PROP_RESERVED_3                = 0x00400000
 };
+
+#if WXWIN_COMPATIBILITY_3_2
+// Indicates bits usable by derived properties.
+wxDEPRECATED_BUT_USED_INTERNALLY_MSG("wxPG_PROP_CLASS_SPECIFIC_1 in intended for internal use only.")
+constexpr wxPGPropertyFlags wxPG_PROP_CLASS_SPECIFIC_1 = wxPG_PROP_RESERVED_1;
+wxDEPRECATED_BUT_USED_INTERNALLY_MSG("wxPG_PROP_CLASS_SPECIFIC_2 in intended for internal use only.")
+constexpr wxPGPropertyFlags wxPG_PROP_CLASS_SPECIFIC_2 = wxPG_PROP_RESERVED_2;
+wxDEPRECATED_BUT_USED_INTERNALLY_MSG("wxPG_PROP_CLASS_SPECIFIC_3 in intended for internal use only.")
+constexpr wxPGPropertyFlags wxPG_PROP_CLASS_SPECIFIC_3 = wxPG_PROP_RESERVED_3;
+#endif // WXWIN_COMPATIBILITY_3_2
 
 // Topmost flag.
 constexpr wxPGPropertyFlags wxPG_PROP_MAX = wxPG_PROP_AUTO_UNSPECIFIED;
@@ -1521,7 +1529,7 @@ public:
     // Useful in SetAttribute etc. Returns true if actually did anything.
     bool RecreateEditor();
 
-    // If property's editor is active, then update it's value.
+    // If property's editor is active, then update its value.
     void RefreshEditor();
 
     // Sets an attribute for this property.

@@ -2,7 +2,6 @@
 // Name:        wx/propgrid/propgridiface.h
 // Purpose:     wxPropertyGridInterface class
 // Author:      Jaakko Salli
-// Modified by:
 // Created:     2008-08-24
 // Copyright:   (c) Jaakko Salli
 // Licence:     wxWindows licence
@@ -698,7 +697,7 @@ public:
     // of a property, if it is not the sole mean to edit the value.
     void LimitPropertyEditing( wxPGPropArg id, bool limit = true );
 
-    // If state is shown in it's grid, refresh it now.
+    // If state is shown in its grid, refresh it now.
     virtual void RefreshGrid( wxPropertyGridPageState* state = nullptr );
 
 #if wxPG_INCLUDE_ADVPROPS
