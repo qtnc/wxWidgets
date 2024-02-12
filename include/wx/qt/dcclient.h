@@ -40,13 +40,16 @@ public:
     wxClientDCImpl( wxDC *owner );
     wxClientDCImpl( wxDC *owner, wxWindow *win );
 
+    static bool
+    CanBeUsedForDrawing(const wxWindow* WXUNUSED(window)) { return false; }
+
 private:
     wxDECLARE_CLASS(wxClientDCImpl);
     wxDECLARE_NO_COPY_CLASS(wxClientDCImpl);
 };
 
 
-class WXDLLIMPEXP_CORE wxPaintDCImpl : public wxClientDCImpl
+class WXDLLIMPEXP_CORE wxPaintDCImpl : public wxWindowDCImpl
 {
 public:
     wxPaintDCImpl( wxDC *owner );

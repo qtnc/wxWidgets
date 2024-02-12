@@ -31,6 +31,7 @@ using @ifdef_ and not @if_.
 @itemdef{\__WXGTK210__, GTK+ 2.10 or higher}
 @itemdef{\__WXGTK218__, GTK+ 2.18 or higher}
 @itemdef{\__WXGTK220__, GTK+ 2.20 or higher}
+@itemdef{\__WXGTK3__, GTK+ 3.0 or higher}
 @itemdef{\__WXMAC__, old define, same as <tt>\__WXOSX__</tt>}
 @itemdef{\__WXMOTIF__, Motif (not used any longer).}
 @itemdef{\__WXMOTIF20__, Motif 2.0 or higher (not used any longer).}
@@ -168,6 +169,10 @@ Currently the following symbols exist:
     implemented in a generic way, using a critical section.}
 @itemdef{wxHAS_BITMAPTOGGLEBUTTON, Defined in @c wx/tglbtn.h if
     wxBitmapToggleButton class is available in addition to wxToggleButton.}
+@itemdef{wxHAS_CONFIG_AS_FILECONFIG, Defined if wxConfig is defined as
+    wxFileConfig. This constant is available since wxWidgets 3.3.0.}
+@itemdef{wxHAS_CONFIG_AS_REGCONFIG, Defined if wxConfig is defined as
+    wxRegConfig. This constant is available since wxWidgets 3.3.0.}
 @itemdef{wxHAS_CONFIG_TEMPLATE_RW, Defined if the currently used compiler
     supports template Read() and Write() methods in wxConfig.}
 @itemdef{wxHAS_DEPRECATED_ATTR, Defined if C++14 @c [[deprecated]] attribute is

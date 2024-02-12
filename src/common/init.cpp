@@ -210,9 +210,9 @@ void wxInitData::InitIfNecessary(int argcIn, wchar_t** argvIn)
     // elsewhere, but it is also possible to call a wide-char initialization
     // function (wxInitialize(), wxEntryStart() or wxEntry() itself) directly,
     // so we need to support this case too.
-    if ( argc )
+    if ( argc || !argcIn )
     {
-        // Already initialized, nothing to do.
+        // Already initialized or nothing to do.
         return;
     }
 
@@ -440,22 +440,6 @@ bool wxEntryStart(int& argc, char **argv)
 // clean up
 // ----------------------------------------------------------------------------
 
-// cleanup done before destroying wxTheApp
-static void DoCommonPreCleanup()
-{
-#if wxUSE_LOG
-    // flush the logged messages if any and don't use the current probably
-    // unsafe log target any more: the default one (wxLogGui) can't be used
-    // after the resources are freed which happens when we return and the user
-    // supplied one might be even more unsafe (using any wxWidgets GUI function
-    // is unsafe starting from now)
-    //
-    // notice that wxLog will still recreate a default log target if any
-    // messages are logged but that one will be safe to use until the very end
-    delete wxLog::SetActiveTarget(nullptr);
-#endif // wxUSE_LOG
-}
-
 // cleanup done after destroying wxTheApp
 static void DoCommonPostCleanup()
 {
@@ -488,24 +472,46 @@ static void DoCommonPostCleanup()
 
 void wxEntryCleanup()
 {
-    DoCommonPreCleanup();
-
-
     // delete the application object
-    if ( wxTheApp )
+    if ( wxAppConsole * const app = wxApp::GetInstance() )
     {
-        wxTheApp->CleanUp();
+        app->CleanUp();
 
         // reset the global pointer to it to nullptr before destroying it as in
         // some circumstances this can result in executing the code using
-        // wxTheApp and using half-destroyed object is no good
-        wxAppConsole * const app = wxApp::GetInstance();
+        // wxTheApp and using half-destroyed object is no good (note that it
+        // usually would be already reset by wxAppBase::CleanUp(), but ensure
+        // that it is definitely done by doing it here too)
         wxApp::SetInstance(nullptr);
+
         delete app;
     }
 
 
     DoCommonPostCleanup();
+}
+
+// ----------------------------------------------------------------------------
+// Entry hook support
+// ----------------------------------------------------------------------------
+
+namespace
+{
+
+// All registered entry hooks.
+std::vector<wxEntryHook>& GetEntryHooks()
+{
+    static std::vector<wxEntryHook> s_entryHooks;
+    return s_entryHooks;
+}
+
+} // anonymous namespace
+
+void wxAddEntryHook(wxEntryHook hook)
+{
+    // Order doesn't really matter, we suppose that we're never going to have
+    // more than one hook that would apply to the same program run.
+    GetEntryHooks().push_back(hook);
 }
 
 // ----------------------------------------------------------------------------
@@ -519,6 +525,17 @@ void wxEntryCleanup()
 
 int wxEntryReal(int& argc, wxChar **argv)
 {
+    // Do this before trying the hooks as they may use command line arguments.
+    wxInitData::Get().InitIfNecessary(argc, argv);
+
+    // Check if we have any hooks that can hijack the application execution.
+    for ( auto& hook : GetEntryHooks() )
+    {
+        const int rc = (*hook)();
+        if ( rc != -1 )
+            return rc;
+    }
+
     // library initialization
     wxInitializer initializer(argc, argv);
 

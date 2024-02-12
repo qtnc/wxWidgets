@@ -36,7 +36,7 @@ static int GetSizeInOrientation(wxSize size, wxOrientation orientation);
 class wxRibbonPageScrollButton : public wxRibbonControl
 {
 public:
-    wxRibbonPageScrollButton(wxRibbonPage* sibling,
+    explicit wxRibbonPageScrollButton(wxRibbonPage* sibling,
                  wxWindowID id = wxID_ANY,
                  const wxPoint& pos = wxDefaultPosition,
                  const wxSize& size = wxDefaultSize,
@@ -54,7 +54,7 @@ protected:
     void OnMouseDown(wxMouseEvent& evt);
     void OnMouseUp(wxMouseEvent& evt);
 
-    wxRibbonPage* m_sibling;
+    wxRibbonPage* m_sibling = nullptr;
     long m_flags;
 
     wxDECLARE_CLASS(wxRibbonPageScrollButton);
@@ -918,7 +918,7 @@ bool wxRibbonPage::ExpandPanels(wxOrientation direction, int maximum_amount)
                   node = node->GetNext(), ++panel_size )
         {
             wxRibbonPanel* panel = wxDynamicCast(node->GetData(), wxRibbonPanel);
-            if(panel == nullptr)
+            if(panel == nullptr || !panel->IsShown())
             {
                 continue;
             }
@@ -1018,7 +1018,7 @@ bool wxRibbonPage::CollapsePanels(wxOrientation direction, int minimum_amount)
                       node = node->GetNext(), ++panel_size )
             {
                 wxRibbonPanel* panel = wxDynamicCast(node->GetData(), wxRibbonPanel);
-                if(panel == largest_panel)
+                if(panel == largest_panel && panel->IsShown())
                 {
                     largest_panel_size = panel_size;
                     break;
@@ -1033,7 +1033,7 @@ bool wxRibbonPage::CollapsePanels(wxOrientation direction, int minimum_amount)
                       node = node->GetNext(), ++panel_size )
             {
                 wxRibbonPanel* panel = wxDynamicCast(node->GetData(), wxRibbonPanel);
-                if(panel == nullptr)
+                if(panel == nullptr || !panel->IsShown())
                 {
                     continue;
                 }
@@ -1109,7 +1109,7 @@ bool wxRibbonPage::DismissExpandedPanel()
               node = node->GetNext() )
     {
         wxRibbonPanel* panel = wxDynamicCast(node->GetData(), wxRibbonPanel);
-        if(panel == nullptr)
+        if(panel == nullptr || !panel->IsShown())
         {
             continue;
         }

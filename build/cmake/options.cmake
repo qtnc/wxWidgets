@@ -46,8 +46,6 @@ endif()
 # support setting the C++ standard, present it an option to the user
 if(DEFINED CMAKE_CXX_STANDARD)
     set(wxCXX_STANDARD_DEFAULT ${CMAKE_CXX_STANDARD})
-elseif(APPLE)
-    set(wxCXX_STANDARD_DEFAULT 11)
 else()
     set(wxCXX_STANDARD_DEFAULT COMPILER_DEFAULT)
 endif()
@@ -271,6 +269,7 @@ wx_option(wxUSE_AFM_FOR_POSTSCRIPT "in wxPostScriptDC class use AFM (adobe font 
 wx_option(wxUSE_PRINTING_ARCHITECTURE "use printing architecture")
 wx_option(wxUSE_SVG "use wxSVGFileDC device context")
 wx_option(wxUSE_WEBVIEW "use wxWebView library")
+wx_option(wxUSE_WEBVIEW_CHROMIUM "Enable CEF based wxWebViewChromium" OFF)
 
 # wxDC is implemented in terms of wxGraphicsContext in wxOSX so the latter
 # can't be disabled, don't even provide an option to do it

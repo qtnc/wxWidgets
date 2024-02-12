@@ -665,10 +665,6 @@ bool wxBitmap::ConvertToDIB()
 
 #endif // wxUSE_WXDIB
 
-wxBitmap::~wxBitmap()
-{
-}
-
 wxBitmap::wxBitmap(const char bits[], int width, int height, int depth)
 {
     wxBitmapRefData *refData = new wxBitmapRefData;
@@ -768,6 +764,17 @@ bool wxBitmap::Create(int width, int height, const wxDC& dc)
 bool wxBitmap::CreateWithDIPSize(const wxSize& size, double scale, int depth)
 {
     if ( !Create(size*scale, depth) )
+        return false;
+
+    GetBitmapData()->m_scaleFactor = scale;
+
+    return true;
+}
+
+bool
+wxBitmap::CreateWithLogicalSize(const wxSize& size, double scale, int depth)
+{
+    if ( !Create(size, depth) )
         return false;
 
     GetBitmapData()->m_scaleFactor = scale;

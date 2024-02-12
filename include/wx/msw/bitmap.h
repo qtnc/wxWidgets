@@ -113,8 +113,6 @@ public:
     }
 #endif // WXWIN_COMPATIBILITY_3_0
 
-    virtual ~wxBitmap();
-
 #if wxUSE_IMAGE
     wxImage ConvertToImage() const;
     wxBitmap ConvertToDisabled(unsigned char brightness = 255) const;
@@ -156,6 +154,14 @@ public:
                            double scale,
                            int depth = wxBITMAP_SCREEN_DEPTH)
         { return CreateWithDIPSize(wxSize(width, height), scale, depth); }
+
+    bool CreateWithLogicalSize(const wxSize& sz,
+                               double scale,
+                               int depth = wxBITMAP_SCREEN_DEPTH);
+    bool CreateWithLogicalSize(int width, int height,
+                               double scale,
+                               int depth = wxBITMAP_SCREEN_DEPTH)
+        { return CreateWithLogicalSize(wxSize(width, height), scale, depth); }
 
     virtual bool LoadFile(const wxString& name, wxBitmapType type = wxBITMAP_DEFAULT_TYPE);
     virtual bool SaveFile(const wxString& name, wxBitmapType type, const wxPalette *cmap = nullptr) const;

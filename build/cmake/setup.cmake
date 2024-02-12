@@ -110,7 +110,7 @@ function(wx_check_cxx_source_compiles code res_var)
     cmake_pop_check_state()
 endfunction()
 
-# wx_check_cxx_source_compiles(<code> <var> [headers...])
+# wx_check_c_source_compiles(<code> <var> [headers...])
 function(wx_check_c_source_compiles code res_var)
     set(src)
     foreach(header ${ARGN})
@@ -612,6 +612,14 @@ check_type_size("long long" SIZEOF_LONG_LONG)
 check_type_size(ssize_t SSIZE_T)
 
 test_big_endian(WORDS_BIGENDIAN)
+
+# For generators using build type, ensure that wxHAVE_CEF_DEBUG matches it.
+if(wxUSE_WEBVIEW_CHROMIUM AND DEFINED CMAKE_BUILD_TYPE)
+    string(TOUPPER ${CMAKE_BUILD_TYPE} build_type)
+    if(${build_type} STREQUAL DEBUG)
+        set(wxHAVE_CEF_DEBUG ON)
+    endif()
+endif()
 
 configure_file(build/cmake/setup.h.in ${wxSETUP_HEADER_FILE})
 if(DEFINED wxSETUP_HEADER_FILE_DEBUG)
