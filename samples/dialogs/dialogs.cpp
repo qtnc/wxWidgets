@@ -433,7 +433,7 @@ bool MyApp::OnInit()
     #endif // wxUSE_COLOURDLG
 
     #if wxUSE_FONTDLG
-        choices_menu->Append(DIALOGS_CHOOSE_FONT, "Choose &font\tShift-Ctrl-N");
+        choices_menu->Append(DIALOGS_CHOOSE_FONT, "Choose &font\tShift-Ctrl-J");
     #endif // wxUSE_FONTDLG
 
     #if wxUSE_CHOICEDLG
@@ -2550,6 +2550,15 @@ public:
 
         Bind(wxEVT_BUTTON, &TestNotificationMessageWindow::OnShowClicked, this, wxID_NEW);
         Bind(wxEVT_BUTTON, &TestNotificationMessageWindow::OnCloseClicked, this, wxID_CLOSE);
+    }
+
+    ~TestNotificationMessageWindow()
+    {
+#if defined(__WXMSW__) && wxUSE_TASKBARICON
+        // If the persistent taskbar icon has been created and is
+        // not deleted at the end, the application will never exit.
+        delete m_taskbarIcon;
+#endif
     }
 
 private:
