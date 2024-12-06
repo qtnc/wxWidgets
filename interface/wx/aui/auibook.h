@@ -321,6 +321,28 @@ public:
     virtual bool SetFont(const wxFont& font);
 
     /**
+        Sets the flags for the wxAuiManager used by wxAuiNotebook.
+
+        Please note that it makes sense to use only some of wxAuiManager flags,
+        documented in wxAuiManagerOption, with wxAuiNotebook, but the other
+        ones are simply ignored, so it is always possible to reuse the same
+        flags for the main wxAuiManager and the one used by the notebook.
+
+        Example of using this function to disable the fade effect for the
+        notebook:
+        @code
+            auiNotebook->SetManagerFlags(
+                wxAuiManager::GetManager()->GetFlags() & ~wxAUI_MGR_HINT_FADE
+            );
+        @endcode
+
+        @see wxAuiManager::SetFlags(), wxAuiManagerOption
+
+        @since 3.3.0
+    */
+    void SetManagerFlags(unsigned int flags);
+
+    /**
         Sets the font for measuring tab labels.
     */
     void SetMeasuringFont(const wxFont& font);
@@ -659,6 +681,31 @@ public:
     virtual int GetIndentSize() = 0;
 
     /**
+        Returns the font to use for normal, non-selected, tabs.
+
+        By default, returns an invalid font, meaning that the font set for
+        wxAuiNotebook itself should be used.
+
+        This function should be overridden for SetNormalFont() to actually work.
+
+        @since 3.3.0
+    */
+    virtual wxFont GetNormalFont() const;
+
+    /**
+        Returns the font to use for the selected tab.
+
+        By default, returns an invalid font, meaning that the font set for
+        wxAuiNotebook itself should be used.
+
+        This function should be overridden for SetSelectedFont() to actually
+        work.
+
+        @since 3.3.0
+    */
+    virtual wxFont GetSelectedFont() const;
+
+    /**
         Returns the tab size for the given caption, bitmap and state.
     */
     virtual wxSize GetTabSize(wxDC& dc, wxWindow* wnd, const wxString& caption,
@@ -677,11 +724,15 @@ public:
 
     /**
         Sets the normal font for drawing labels.
+
+        @see GetNormalFont()
     */
     virtual void SetNormalFont(const wxFont& font) = 0;
 
     /**
         Sets the font for drawing text for selected UI elements.
+
+        @see GetSelectedFont()
     */
     virtual void SetSelectedFont(const wxFont& font) = 0;
 

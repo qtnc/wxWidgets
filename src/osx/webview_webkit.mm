@@ -117,6 +117,16 @@ public:
         return m_webViewConfiguration;
     }
 
+    virtual bool EnablePersistentStorage(bool enable) override
+    {
+        m_webViewConfiguration.websiteDataStore =
+            enable ?
+                [WKWebsiteDataStore defaultDataStore] :
+                [WKWebsiteDataStore nonPersistentDataStore];
+
+        return true;
+    }
+
     WKWebViewConfiguration* m_webViewConfiguration;
 };
 
@@ -124,11 +134,21 @@ public:
 // wxWebViewFactoryWebKit
 //-----------------------------------------------------------------------------
 
-wxVersionInfo wxWebViewFactoryWebKit::GetVersionInfo()
+wxVersionInfo wxWebViewFactoryWebKit::GetVersionInfo(wxVersionContext context)
 {
-    int verMaj, verMin, verMicro;
-    wxGetOsVersion(&verMaj, &verMin, &verMicro);
-    return wxVersionInfo("WKWebView", verMaj, verMin, verMicro);
+    switch ( context )
+    {
+        case wxVersionContext::BuildTime:
+            // There is no build-time version for this backend.
+            break;
+
+        case wxVersionContext::RunTime:
+            int verMaj, verMin, verMicro;
+            wxGetOsVersion(&verMaj, &verMin, &verMicro);
+            return wxVersionInfo("WKWebView", verMaj, verMin, verMicro);
+    }
+
+    return {};
 }
 
 wxWebViewConfiguration wxWebViewFactoryWebKit::CreateConfiguration()

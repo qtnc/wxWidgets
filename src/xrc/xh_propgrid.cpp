@@ -78,6 +78,7 @@ void wxPropertyGridXmlHandler::InitPopulator()
     wxPropertyGridXrcPopulator* populator
         = new wxPropertyGridXrcPopulator(this);
     m_populator = populator;
+    m_populator->SetGrid( m_pg );
 }
 
 void wxPropertyGridXmlHandler::PopulatePage( wxPropertyGridPageState* state )
@@ -149,7 +150,6 @@ wxObject *wxPropertyGridXmlHandler::DoCreateResource()
             return nullptr;
 
         wxString sFlags(wxT("flags"));
-        wxString flags;
         if ( HasParam(sFlags) )
             property->SetFlagsFromString( GetText(sFlags) );
 

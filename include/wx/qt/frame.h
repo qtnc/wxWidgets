@@ -13,11 +13,13 @@
 #include "wx/frame.h"
 
 class QMainWindow;
+class QToolBar;
 
 class WXDLLIMPEXP_CORE wxFrame : public wxFrameBase
 {
 public:
-    wxFrame() { Init(); }
+    wxFrame() = default;
+
     wxFrame(wxWindow *parent,
                wxWindowID id,
                const wxString& title,
@@ -26,8 +28,6 @@ public:
                long style = wxDEFAULT_FRAME_STYLE,
                const wxString& name = wxASCII_STR(wxFrameNameStr))
     {
-        Init();
-
         Create( parent, id, title, pos, size, style, name );
     }
     virtual ~wxFrame();
@@ -41,8 +41,14 @@ public:
                 const wxString& name = wxASCII_STR(wxFrameNameStr));
 
     virtual void SetMenuBar(wxMenuBar *menubar) override;
+
+#if wxUSE_STATUSBAR
     virtual void SetStatusBar(wxStatusBar *statusBar ) override;
+#endif // wxUSE_STATUSBAR
+
+#if wxUSE_TOOLBAR
     virtual void SetToolBar(wxToolBar *toolbar) override;
+#endif // wxUSE_TOOLBAR
 
     virtual void SetWindowStyleFlag( long style ) override;
 
@@ -53,23 +59,14 @@ public:
 
 protected:
     virtual wxPoint GetClientAreaOrigin() const override;
-    virtual void DoGetClientSize(int *width, int *height) const override;
-    virtual void DoSetClientSize(int width, int height) override;
 
     virtual QWidget* QtGetParentWidget() const override;
 
 private:
-    // Common part of all ctors.
-    void Init()
-    {
-        m_qtToolBar = nullptr;
-    }
-
-
     // Currently active native toolbar.
-    class QToolBar* m_qtToolBar;
+    QToolBar* m_qtToolBar = nullptr;
 
-    wxDECLARE_DYNAMIC_CLASS( wxFrame );
+    wxDECLARE_DYNAMIC_CLASS(wxFrame);
 };
 
 

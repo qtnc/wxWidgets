@@ -8,6 +8,8 @@
 // For compilers that support precompilation, includes "wx.h".
 #include "wx/wxprec.h"
 
+#if wxUSE_STATUSBAR
+
 #include "wx/statusbr.h"
 #include "wx/qt/private/utils.h"
 #include "wx/qt/private/converter.h"
@@ -41,14 +43,14 @@ wxStatusBar::wxStatusBar(wxWindow *parent, wxWindowID winid,
 bool wxStatusBar::Create(wxWindow *parent, wxWindowID id,
                          long style, const wxString& name)
 {
-    m_qtStatusBar = new wxQtStatusBar( parent, this );
+    m_qtWindow = new wxQtStatusBar( parent, this );
 
     if ( !wxStatusBarBase::Create( parent, id, wxDefaultPosition, wxDefaultSize,
                            style, wxDefaultValidator, name ) )
         return false;
 
     if ( style & wxSTB_SIZEGRIP )
-        m_qtStatusBar->setSizeGripEnabled(true);
+        GetQStatusBar()->setSizeGripEnabled(true);
 
     SetFieldsCount(1);
 
@@ -72,6 +74,11 @@ bool wxStatusBar::Create(wxWindow *parent, wxWindowID id,
     return true;
 }
 
+QStatusBar* wxStatusBar::GetQStatusBar() const
+{
+    return static_cast<QStatusBar*>(m_qtWindow);
+}
+
 void wxStatusBar::SetStatusWidths(int number, const int widths[])
 {
     if ( number != (int)m_panes.GetCount() )
@@ -82,7 +89,7 @@ void wxStatusBar::SetStatusWidths(int number, const int widths[])
         int i = 0;
         for ( auto pane : m_qtPanes )
         {
-            m_qtStatusBar->removeWidget(pane);
+            GetQStatusBar()->removeWidget(pane);
 
             // Do not delete user-added controls.
             if ( !m_panes[i++].GetFieldControl() )
@@ -110,7 +117,7 @@ bool wxStatusBar::GetFieldRect(int i, wxRect& rect) const
 
 void wxStatusBar::SetMinHeight(int height)
 {
-    m_qtStatusBar->setMinimumHeight(height);
+    GetQStatusBar()->setMinimumHeight(height);
 }
 
 int wxStatusBar::GetBorderX() const
@@ -203,11 +210,8 @@ void wxStatusBar::CreateFieldsIfNeeded()
 
         m_qtPanes.push_back(pane);
 
-        m_qtStatusBar->addWidget(pane, width < 0 ? -width : 0);
+        GetQStatusBar()->addWidget(pane, width < 0 ? -width : 0);
     }
 }
 
-QWidget *wxStatusBar::GetHandle() const
-{
-    return m_qtStatusBar;
-}
+#endif

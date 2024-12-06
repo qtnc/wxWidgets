@@ -135,7 +135,6 @@ DEFAULT_DEFAULT_wxUSE_QT=0
 
 PROGRAM_EXT=
 SAMPLES_CXXFLAGS=
-SAMPLES_RPATH_FLAG=
 DYLIB_RPATH_FLAG=
 DYLIB_RPATH_INSTALL=
 DYLIB_RPATH_POSTLINK=
@@ -532,7 +531,7 @@ WX_ARG_WITH(opengl,        [  --with-opengl           use OpenGL (or Mesa)], wxU
 WX_ARG_WITH(xtest,         [  --with-xtest            use XTest extension], wxUSE_XTEST)
 WX_ARG_WITH(nanosvg,       [  --with-nanosvg          use NanoSVG for rasterizing SVG], wxUSE_NANOSVG)
 
-if test "$wxUSE_GTK" = 1 -o "$wxUSE_QT" = 1 -o "$wxUSE_X11" = 1; then
+if test "$wxUSE_GTK" = 1 -o "$wxUSE_X11" = 1; then
     wx_needs_cairo_for_gc=1
 fi
 
@@ -723,7 +722,6 @@ WX_ARG_FEATURE(fsvolume,      [  --enable-fsvolume       use wxFSVolume class], 
 WX_ARG_FEATURE(fswatcher,     [  --enable-fswatcher      use wxFileSystemWatcher class], wxUSE_FSWATCHER)
 WX_ARG_FEATURE(geometry,      [  --enable-geometry       use geometry class], wxUSE_GEOMETRY)
 WX_ARG_FEATURE(log,           [  --enable-log            use logging system], wxUSE_LOG)
-WX_ARG_FEATURE(longlong,      [  --enable-longlong       use wxLongLong class], wxUSE_LONGLONG)
 WX_ARG_FEATURE(mimetype,      [  --enable-mimetype       use wxMimeTypesManager], wxUSE_MIMETYPE)
 WX_ARG_FEATURE(printfposparam,[  --enable-printfposparam use wxVsnprintf() which supports positional parameters], wxUSE_PRINTF_POS_PARAMS)
 WX_ARG_FEATURE(secretstore,   [  --enable-secretstore    use wxSecretStore class], wxUSE_SECRETSTORE)
@@ -1760,8 +1758,7 @@ if test "$ac_cv_sys_largefile_source" != no; then
     WXCONFIG_CPPFLAGS="$WXCONFIG_CPPFLAGS -D_LARGEFILE_SOURCE=$ac_cv_sys_largefile_source"
 fi
 
-dnl check for bytesex stuff (don't use AC_C_BIGENDIAN to allow cross-compiling)
-WX_C_BIGENDIAN
+AC_C_BIGENDIAN
 
 dnl With Sun CC, temporaries have block scope by default. This flag is needed
 dnl to get the expression scope behaviour that conforms to the standard.
@@ -2770,7 +2767,7 @@ if test "$USE_WIN32" = 1 ; then
     ],
     [ ])
 
-    LIBS="$LIBS -luxtheme -lwinspool -lwinmm -lshell32 -lshlwapi -lcomctl32 -lcomdlg32 -ladvapi32 -lversion -lws2_32 -lgdi32"
+    LIBS="$LIBS -luxtheme -lwinspool -lwinmm -lshell32 -lshlwapi -lcomctl32 -lcomdlg32 -ladvapi32 -lversion -lws2_32 -lgdi32 -lgdiplus -lmsimg32"
     case "${host}" in
         x86_64-*-mingw* )
             dnl we need to define this to embed the manifest for correct
@@ -3501,6 +3498,10 @@ for dep in \${libnames} ; do
     changes="\${changes} -change \${4}/\${dep} \${3}/\${dep}"
 done
 for i in \${libnames} ; do
+    if test -L \${1}/\${i}; then
+        # skip symbolic links
+        continue
+    fi
     ${HOST_PREFIX}install_name_tool \${changes} -id \${3}/\${i} \${1}/\${i}
 done
 
@@ -3535,9 +3536,6 @@ EOF
         DYLIB_PATH_POSTLINK=''
         WXCONFIG_RPATH=''
     fi
-
-    dnl Flag for the samples is the same as for the libraries themselves.
-    SAMPLES_RPATH_FLAG="$DYLIB_RPATH_FLAG"
 
     SHARED=1
 
@@ -5093,6 +5091,9 @@ if test "$USE_UNIX" = 1 ; then
         AC_LINK_IFELSE([AC_LANG_PROGRAM([
                 #include <sys/ioctl.h>
                 #include <sys/soundcard.h>
+                #ifdef HAVE_UNISTD_H
+                # include <unistd.h> /* needed for ioctl() on Solaris */
+                #endif
             ],
             [
                 ioctl(0, SNDCTL_DSP_SPEED, 0);
@@ -5104,6 +5105,9 @@ if test "$USE_UNIX" = 1 ; then
                 AC_LINK_IFELSE([AC_LANG_PROGRAM([
                         #include <sys/ioctl.h>
                         #include <sys/soundcard.h>
+                        #ifdef HAVE_UNISTD_H
+                        # include <unistd.h> /* needed for ioctl() on Solaris */
+                        #endif
                     ],
                     [
                         ioctl(0, SNDCTL_DSP_SPEED, 0);
@@ -5466,10 +5470,6 @@ if test "$wxUSE_LOG" = "yes"; then
 
     dnl the keyboard sample requires wxUSE_LOG
     SAMPLES_SUBDIRS="$SAMPLES_SUBDIRS keyboard"
-fi
-
-if test "$wxUSE_LONGLONG" = "yes"; then
-  AC_DEFINE(wxUSE_LONGLONG)
 fi
 
 if test "$wxUSE_GEOMETRY" = "yes"; then
@@ -6157,10 +6157,6 @@ fi
 
 if test "$wxUSE_DRAG_AND_DROP" = "yes" -o "$wxUSE_CLIPBOARD" = "yes"; then
     SAMPLES_SUBDIRS="$SAMPLES_SUBDIRS dnd"
-fi
-
-if test "$wxUSE_CLIPBOARD" = "yes"; then
-    SAMPLES_SUBDIRS="$SAMPLES_SUBDIRS clipboard"
 fi
 
 if test "$wxUSE_SPLINES" = "yes" ; then
@@ -7247,24 +7243,26 @@ if test "$wxUSE_GRAPHICS_CONTEXT" = "yes"; then
             wx_has_graphics=1
         fi
 
-        AC_CACHE_CHECK([if Direct2D is available], wx_cv_lib_direct2d,
-            [
-                dnl same as above, we need to test only for the headers
-                AC_LANG_PUSH(C++)
-                AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
-                    [#include <windows.h>
-                     #include <d2d1.h>
-                     #include <dwrite.h>
-                    ],
-                    [
-                        ID2D1Factory* factory = NULL;
-                    ])],
-                    wx_cv_lib_direct2d=yes,
-                    wx_cv_lib_direct2d=no
-                )
-                AC_LANG_POP()
-            ]
-        )
+        if test "$wxUSE_GRAPHICS_DIRECT2D" = "yes"; then
+            AC_CACHE_CHECK([if Direct2D is available], wx_cv_lib_direct2d,
+                [
+                    dnl same as above, we need to test only for the headers
+                    AC_LANG_PUSH(C++)
+                    AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
+                        [#include <windows.h>
+                        #include <d2d1.h>
+                        #include <dwrite.h>
+                        ],
+                        [
+                            ID2D1Factory* factory = NULL;
+                        ])],
+                        wx_cv_lib_direct2d=yes,
+                        wx_cv_lib_direct2d=no
+                    )
+                    AC_LANG_POP()
+                ]
+            )
+        fi
         if test "$wx_cv_lib_direct2d" = "yes"; then
             AC_DEFINE(wxUSE_GRAPHICS_DIRECT2D)
         fi
@@ -7811,7 +7809,6 @@ AC_SUBST(TOOLKIT_VERSION)
 AC_SUBST(DYLIB_RPATH_FLAG)
 AC_SUBST(DYLIB_RPATH_INSTALL)
 AC_SUBST(DYLIB_RPATH_POSTLINK)
-AC_SUBST(SAMPLES_RPATH_FLAG)
 AC_SUBST(HEADER_PAD_OPTION)
 AC_SUBST(HOST_SUFFIX)
 AC_SUBST(USE_DPI_AWARE_MANIFEST)

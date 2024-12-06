@@ -18,6 +18,10 @@
 #include "wx/dcmemory.h"
 #include "wx/imaglist.h"
 
+#ifdef __WINDOWS__
+    #include "wx/msw/private/resource_usage.h"
+#endif // __WINDOWS__
+
 #include "asserthelper.h"
 
 // ----------------------------------------------------------------------------
@@ -53,12 +57,84 @@ TEST_CASE("BitmapBundle::FromBitmaps", "[bmpbundle]")
 
 TEST_CASE("BitmapBundle::GetBitmap", "[bmpbundle]")
 {
-    const wxBitmapBundle b = wxBitmapBundle::FromBitmap(wxBitmap(16, 16));
+    wxBitmapBundle b = wxBitmapBundle::FromBitmap(wxBitmap(16, 16));
 
     CHECK( b.GetBitmap(wxSize(16, 16)).GetSize() == wxSize(16, 16) );
     CHECK( b.GetBitmap(wxSize(32, 32)).GetSize() == wxSize(32, 32) );
     CHECK( b.GetBitmap(wxSize(24, 24)).GetSize() == wxSize(24, 24) );
+
+    // Test for the special case when the requested size uses the same height
+    // but not the same width.
+    wxBitmap nonSquare(wxSize(51, 41));
+    b = wxBitmapBundle::FromBitmap(nonSquare);
+
+    const wxSize scaledSize(52, 41);
+    CHECK( b.GetBitmap(scaledSize).GetSize() == scaledSize );
+
+    // Test upscaling too.
+    b = wxBitmapBundle::FromBitmap(wxBitmap(32, 32));
+    CHECK( b.GetBitmap(wxSize(24, 24)).GetSize() == wxSize(24, 24) );
+    CHECK( b.GetBitmap(wxSize(48, 48)).GetSize() == wxSize(48, 48) );
 }
+
+#ifdef __WINDOWS__
+
+namespace
+{
+
+std::string wxGUIObjectUsageAsString(const wxGUIObjectUsage& useCount)
+{
+    return wxString::Format("%lu GDI, %lu USER",
+                            useCount.numGDI, useCount.numUSER)
+            .utf8_string();
+}
+
+} // anonymous namespace
+
+namespace Catch
+{
+    template <>
+    struct StringMaker<wxGUIObjectUsage>
+    {
+        static std::string convert(const wxGUIObjectUsage& useCount)
+        {
+            return wxGUIObjectUsageAsString(useCount);
+        }
+    };
+}
+
+TEST_CASE("BitmapBundle::ResourceLeak", "[bmpbundle]")
+{
+    wxBitmapBundle bb = wxBitmapBundle::FromBitmap(wxBitmap(32, 32));
+
+    const auto usageBefore = wxGetCurrentlyUsedResources();
+    INFO("Usage before: " << wxGUIObjectUsageAsString(usageBefore));
+
+    for ( int n = 0; n < 10000; ++n )
+    {
+        wxBitmap bmp = bb.GetBitmap(wxSize(24, 24));
+        if ( !bmp.GetHandle() )
+        {
+            FAIL("Failed to create bitmap");
+        }
+    }
+
+    const auto usageAfter = wxGetCurrentlyUsedResources();
+    INFO("Usage after:  " << wxGUIObjectUsageAsString(usageAfter));
+
+    INFO("Usage peak:   " << wxGUIObjectUsageAsString(wxGetMaxUsedResources()));
+
+    // We shouldn't have used any USER resources.
+    CHECK( usageAfter.numUSER == usageBefore.numUSER );
+
+    // Ideally we'd want the GDI usage to be exactly the same as before too,
+    // but at least one extra resource gets allocated somewhere, so allow for
+    // it.
+    REQUIRE( usageAfter.numGDI >= usageBefore.numGDI );
+    CHECK( usageAfter.numGDI - usageBefore.numGDI < 10 );
+}
+
+#endif // __WINDOWS__
 
 // Helper functions for the test below.
 namespace
@@ -313,6 +389,14 @@ TEST_CASE("BitmapBundle::GetPreferredSize", "[bmpbundle]")
     CHECK_THAT( BitmapAtScale(b, 4.25), SameAs(4.0, 2.0) );
     CHECK_THAT( BitmapAtScale(b, 4.50), SameAs(4.5, 1.5) );
     CHECK_THAT( BitmapAtScale(b, 5   ), SameAs(5.0, 1.0) );
+
+
+    // Another check to detect that the scale is computed correctly even when
+    // rounding is involved.
+    wxBitmap nonSquare(wxSize(51, 41));
+    nonSquare.SetScaleFactor(1.5);
+    b = wxBitmapBundle::FromBitmap(nonSquare);
+    CHECK( b.GetPreferredBitmapSizeAtScale(1.5) == nonSquare.GetSize() );
 }
 
 #ifdef wxHAS_DPI_INDEPENDENT_PIXELS

@@ -14,7 +14,7 @@ include(CMakePrintHelpers)
 
 # Use the MSVC/makefile naming convention, or the configure naming convention,
 # this is the same check as used in FindwxWidgets.
-if(WIN32 AND NOT CYGWIN AND NOT MSYS)
+if(WIN32 AND NOT CYGWIN AND NOT MSYS AND NOT CMAKE_CROSSCOMPILING)
     set(WIN32_MSVC_NAMING 1)
 else()
     set(WIN32_MSVC_NAMING 0)
@@ -109,6 +109,14 @@ function(wx_set_common_target_properties target_name)
 
     if(wxBUILD_PIC)
         set_target_properties(${target_name} PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+    endif()
+
+    if(NOT WIN32 AND wxUSE_VISIBILITY)
+        set_target_properties(${target_name} PROPERTIES
+            C_VISIBILITY_PRESET hidden
+            CXX_VISIBILITY_PRESET hidden
+            VISIBILITY_INLINES_HIDDEN TRUE
+        )
     endif()
 
     if(MSVC)
@@ -252,6 +260,8 @@ function(wx_set_target_properties target_name)
     set(lib_prefix "lib")
     if(MSVC OR (WIN32 AND wxBUILD_SHARED))
         set(lib_prefix)
+    elseif (CYGWIN AND wxBUILD_SHARED)
+        set(lib_prefix "cyg")
     endif()
 
     # static (and import) library names
@@ -346,6 +356,8 @@ function(wx_set_target_properties target_name)
             kernel32
             user32
             gdi32
+            gdiplus
+            msimg32
             comdlg32
             winspool
             winmm
@@ -452,10 +464,11 @@ macro(wx_add_library name)
         set_target_properties(${name} PROPERTIES PROJECT_LABEL ${name_short})
 
         # Setup install
-        set(runtime_dir "lib")
-        if(WIN32 AND NOT WIN32_MSVC_NAMING)
+        if(MSYS OR CYGWIN)
             # configure puts the .dll in the bin directory
             set(runtime_dir "bin")
+        else()
+            set(runtime_dir "lib")
         endif()
         wx_install(TARGETS ${name}
             EXPORT wxWidgetsTargets
@@ -687,7 +700,7 @@ endfunction()
 # Add sample, test, demo or benchmark
 # wx_add(<name> <group> [CONSOLE|CONSOLE_GUI|DLL] [IMPORTANT] [SRC_FILES...]
 #    [LIBRARIES ...] [NAME target_name] [FOLDER folder]
-#    [DATA ...] [DEFINITIONS ...] [RES ...] [PLIST ...)
+#    [DATA ...] [DEFINITIONS ...] [RES ...] [RES_BUNDLE ...] [PLIST ...)
 # name default target name
 # group can be Samples, Tests, Demos or Benchmarks
 # first parameter may be CONSOLE to indicate a console application or DLL to indicate a shared library
@@ -702,6 +715,7 @@ endfunction()
 #   DATA followed by required data files. Use a colon to separate different source and dest paths
 #   DEFINITIONS list of definitions for the target
 #   RES followed by WIN32 .rc files
+#   RES_BUNDLE followed by macOS bundle resource files
 #   PLIST followed by macOS Info.plist.in file
 #
 # Additionally the following variables may be set before calling wx_add_sample:
@@ -728,7 +742,7 @@ function(wx_add name group)
     cmake_parse_arguments(APP
         "CONSOLE;CONSOLE_GUI;DLL;IMPORTANT"
         "NAME;FOLDER"
-        "DATA;DEFINITIONS;DEPENDS;LIBRARIES;RES;PLIST"
+        "DATA;DEFINITIONS;DEPENDS;LIBRARIES;RES;RES_BUNDLE;PLIST"
         ${ARGN}
         )
 
@@ -749,7 +763,7 @@ function(wx_add name group)
             return()
         endif()
         set(SUB_DIR "tests")
-        set(DEFAULT_RC_FILE "samples/sample.rc")
+        set(DEFAULT_RC_FILE "tests/test.rc")
     elseif(group STREQUAL Demos)
         set(SUB_DIR "demos/${name}")
         set(DEFAULT_RC_FILE "demos/${name}/${target_name}.rc")
@@ -791,7 +805,13 @@ function(wx_add name group)
             list(APPEND src_files ${wxSOURCE_DIR}/${DEFAULT_RC_FILE})
         endif()
     elseif(APPLE AND NOT IPHONE)
-        list(APPEND src_files ${wxSOURCE_DIR}/src/osx/carbon/wxmac.icns)
+        set(bundle_files "${wxSOURCE_DIR}/src/osx/carbon/wxmac.icns")
+        if(APP_RES_BUNDLE)
+            foreach(res ${APP_RES_BUNDLE})
+                list(APPEND bundle_files "${wxSOURCE_DIR}/${SUB_DIR}/${res}")
+            endforeach()
+        endif()
+        list(APPEND src_files ${bundle_files})
     endif()
 
     if(APP_DLL)
@@ -841,12 +861,12 @@ function(wx_add name group)
         target_include_directories(${target_name} PRIVATE ${wxSOURCE_DIR}/samples)
     elseif(group STREQUAL Tests)
         target_include_directories(${target_name} PRIVATE ${wxSOURCE_DIR}/tests)
+        target_include_directories(${target_name} PRIVATE ${wxSOURCE_DIR}/samples)
         target_include_directories(${target_name} PRIVATE ${wxSOURCE_DIR}/3rdparty/catch/single_include)
         target_include_directories(${target_name} PRIVATE ${wxTOOLKIT_INCLUDE_DIRS})
     endif()
 
     if(APP_DATA)
-        # TODO: handle data files differently for OS X bundles
         # Copy data files to output directory
         foreach(data_src ${APP_DATA})
             string(FIND ${data_src} ":" HAS_COLON)
@@ -875,7 +895,7 @@ function(wx_add name group)
             endif()
             set_target_properties(${target_name} PROPERTIES
                 MACOSX_BUNDLE_INFO_PLIST "${PLIST_FILE}"
-                RESOURCE "${wxSOURCE_DIR}/src/osx/carbon/wxmac.icns")
+                RESOURCE "${bundle_files}")
         endif()
         set_target_properties(${target_name} PROPERTIES
             MACOSX_BUNDLE_GUI_IDENTIFIER "org.wxwidgets.${target_name}"

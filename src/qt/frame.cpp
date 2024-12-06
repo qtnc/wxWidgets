@@ -93,6 +93,7 @@ void wxFrame::SetMenuBar( wxMenuBar *menuBar )
     wxFrameBase::SetMenuBar( menuBar );
 }
 
+#if wxUSE_STATUSBAR
 void wxFrame::SetStatusBar( wxStatusBar *statusBar )
 {
     // The current status bar could be deleted by Qt when dereferencing it
@@ -108,7 +109,9 @@ void wxFrame::SetStatusBar( wxStatusBar *statusBar )
     }
     wxFrameBase::SetStatusBar( statusBar );
 }
+#endif // wxUSE_STATUSBAR
 
+#if wxUSE_TOOLBAR
 void wxFrame::SetToolBar(wxToolBar *toolbar)
 {
     if ( toolbar != nullptr )
@@ -133,6 +136,7 @@ void wxFrame::SetToolBar(wxToolBar *toolbar)
     }
     wxFrameBase::SetToolBar( toolbar );
 }
+#endif // wxUSE_TOOLBAR
 
 void wxFrame::SetWindowStyleFlag( long style )
 {
@@ -215,24 +219,6 @@ void wxFrame::RemoveChild( wxWindowBase *child )
 wxPoint wxFrame::GetClientAreaOrigin() const
 {
     return wxQtConvertPoint( GetQMainWindow()->centralWidget()->pos() );
-}
-
-void wxFrame::DoGetClientSize(int *width, int *height) const
-{
-    wxFrameBase::DoGetClientSize(width, height);
-}
-
-void wxFrame::DoSetClientSize(int width, int height)
-{
-    wxWindow::DoSetClientSize(width, height);
-
-    int adjustedWidth, adjustedHeight;
-    DoGetClientSize(&adjustedWidth, &adjustedHeight);
-
-    QWidget *centralWidget = GetQMainWindow()->centralWidget();
-    QRect geometry = centralWidget->geometry();
-    geometry.setSize(QSize(adjustedWidth, adjustedHeight));
-    centralWidget->setGeometry(geometry);
 }
 
 QMainWindow *wxFrame::GetQMainWindow() const

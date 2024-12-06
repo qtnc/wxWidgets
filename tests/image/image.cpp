@@ -1623,9 +1623,29 @@ TEST_CASE_METHOD(ImageHandlersInit, "wxImage::BMP", "[image][bmp]")
                            wxBITMAP_TYPE_BMP);
         LoadMalformedImage("image/8bpp-colorsused-large.bmp",
                            wxBITMAP_TYPE_BMP);
+        LoadMalformedImage("image/badrle4.bmp", wxBITMAP_TYPE_BMP);
+        LoadMalformedImage("image/width-times-height-overflow.bmp", wxBITMAP_TYPE_BMP);
+    }
+    wxImage image;
+    SECTION("32bpp alpha")
+    {
+        REQUIRE(image.LoadFile("image/32bpp_rgb.bmp", wxBITMAP_TYPE_BMP));
+        REQUIRE_FALSE(image.GetAlpha());
 
-        LoadMalformedImageWithException("image/width-times-height-overflow.bmp",
-                                        wxBITMAP_TYPE_BMP);
+        // alpha is preserved for ICO
+        REQUIRE(image.LoadFile("image/32bpp_rgb.ico", wxBITMAP_TYPE_ICO));
+        const unsigned char* alpha = image.GetAlpha();
+        REQUIRE(alpha);
+        REQUIRE(alpha[0] == 0x80);
+
+        // alpha is ignored for ICO if it is fully transparent
+        REQUIRE(image.LoadFile("image/32bpp_rgb_a0.ico", wxBITMAP_TYPE_ICO));
+        REQUIRE_FALSE(image.GetAlpha());
+    }
+    SECTION("bitfields")
+    {
+        REQUIRE(image.LoadFile("image/rgb16-3103.bmp", wxBITMAP_TYPE_BMP));
+        REQUIRE(image.GetData()[0] == 0xff);
     }
 }
 
@@ -2447,6 +2467,55 @@ TEST_CASE_METHOD(ImageHandlersInit, "wxImage::LoadPath", "[.]")
             << image.GetHeight()
             << (image.HasAlpha() ? " with alpha" : "")
             << " loaded");
+}
+
+TEST_CASE_METHOD(ImageHandlersInit, "wxImage::Cursor", "[image][cursor]")
+{
+    // cursor from file
+    wxCursor cursor1("horse.cur", wxBITMAP_TYPE_CUR);
+    CHECK( cursor1.IsOk() );
+    wxCursor cursor2("horse.ico", wxBITMAP_TYPE_ICO);
+    CHECK( cursor2.IsOk() );
+    wxCursor cursor3("horse.bmp", wxBITMAP_TYPE_BMP);
+    CHECK( cursor3.IsOk() );
+
+    // converted horse.cur to XBM, 32x32px, hotspot 16,23
+    static const unsigned char xbm_horse[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x0F, 0x00, 0x00,
+        0x00, 0x1F, 0x00, 0x00, 0xC0, 0x1F, 0x00, 0x00, 0xF8, 0x3F, 0x00, 0x00,
+        0xFF, 0x3F, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00,
+        0xFF, 0xFF, 0x01, 0x00, 0xFF, 0xFF, 0x01, 0x00, 0xFF, 0xFF, 0x01, 0x00,
+        0xFF, 0xFF, 0x03, 0x00, 0xFF, 0xFF, 0x03, 0x00, 0xFF, 0xFF, 0x07, 0x00,
+        0xFF, 0xFF, 0x07, 0x00, 0xFF, 0xFF, 0x07, 0x00, 0xFF, 0xFF, 0x07, 0x00,
+        0xFF, 0xFF, 0x0F, 0x00, 0xFF, 0xFF, 0x0F, 0x00, 0xBF, 0xFF, 0x1F, 0x00,
+        0x1F, 0xFE, 0x1F, 0x00, 0x0F, 0x7C, 0x1E, 0x00, 0x0F, 0x78, 0x3E, 0x00,
+        0x07, 0xF0, 0x3F, 0x00, 0x03, 0xE0, 0x3F, 0x00, 0x01, 0xC0, 0x1F, 0x00,
+        0x00, 0x80, 0x0F, 0x00, 0x00, 0x80, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+
+    wxImage img = wxBitmap((const char*)xbm_horse, 32, 32).ConvertToImage();
+    REQUIRE( img.IsOk() );
+    img.SetOption(wxIMAGE_OPTION_CUR_HOTSPOT_X, 16);
+    img.SetOption(wxIMAGE_OPTION_CUR_HOTSPOT_Y, 23);
+    wxCursor cursor4(img);
+    CHECK( cursor4.IsOk() );
+
+#if defined(__WXGTK__)
+    // GTK has a constructor accepting XBM
+    wxCursor cursor5((const char*)xbm_horse, 32, 32, 16, 23, nullptr, wxWHITE, wxBLACK);
+    CHECK( cursor5.IsOk() );
+#endif
+
+    // cursor from resource (win32 .rc file, macOS app resources)
+#if defined( __WXMSW__ ) || defined( __WXOSX__ )
+    wxCursor cursor6("horse");
+    CHECK( cursor6.IsOk() );
+#endif
+#if defined( __WXOSX__ )
+    wxCursor cursor7("bullseye");
+    CHECK( cursor7.IsOk() );
+#endif
 }
 
 /*
