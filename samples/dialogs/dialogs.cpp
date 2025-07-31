@@ -721,7 +721,7 @@ MyFrame::MyFrame(const wxString& title)
 
 #if wxUSE_INFOBAR
     // an info bar can be created very simply and used without any extra effort
-    m_infoBarSimple = new wxInfoBar(this);
+    m_infoBarSimple = new wxInfoBar(this, wxID_ANY, wxINFOBAR_CHECKBOX);
 
     // or it can also be customized by
     m_infoBarAdvanced = new wxInfoBar(this);
@@ -942,6 +942,13 @@ void MyFrame::LogDialog(wxCommandEvent& WXUNUSED(event))
 void MyFrame::InfoBarSimple(wxCommandEvent& WXUNUSED(event))
 {
     static int s_count = 0;
+    static bool s_dontShowAgain = false;
+
+    if (s_dontShowAgain)
+    {
+        wxMessageBox("You asked to not see this again. Remember?");
+        return;
+    }
 
     wxString msg;
     if ( ++s_count % 2 )
@@ -959,7 +966,21 @@ void MyFrame::InfoBarSimple(wxCommandEvent& WXUNUSED(event))
                    s_count);
     }
 
+    m_infoBarSimple->ShowCheckBox(_("Do not show this again"), false);
     m_infoBarSimple->ShowMessage(msg);
+    // intercept the close button being clicked
+    m_infoBarSimple->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& WXUNUSED(event))
+        {
+            // dismiss the message and (if a generic control)
+            // see if the "don't show this again" checkbox
+            // was checked and handle that for next time
+            m_infoBarSimple->Dismiss();
+            if (m_infoBarSimple->IsCheckBoxChecked())
+            {
+                s_dontShowAgain = true;
+            };
+        }, wxID_CLOSE);
 }
 
 void MyFrame::InfoBarAdvanced(wxCommandEvent& WXUNUSED(event))
@@ -3428,7 +3449,7 @@ static void InitAboutInfoMinimal(wxAboutDialogInfo& info)
                         wxVERSION_NUM_DOT_STRING
                     ));
     info.SetDescription("This sample shows different wxWidgets dialogs.");
-    info.SetCopyright("Copyright (C) 1998-2023 wxWidgets dev team.");
+    info.SetCopyright("Copyright (C) 1992-2025 wxWidgets dev team.");
 }
 
 static void InitAboutInfoWebsite(wxAboutDialogInfo& info)
@@ -4074,7 +4095,7 @@ wxPanel* SettingsDialog::CreateGeneralSettingsPage(wxWindow* parent)
     itemSizer8->Add(checkBox6, 0, wxALL|wxALIGN_CENTER_VERTICAL, 5);
     item0->Add(itemSizer8, 0, wxGROW|wxALL, 0);
 
-    topSizer->Add( item0, wxSizerFlags(1).Expand().Border(wxALL, 5) );
+    topSizer->Add( item0, wxSizerFlags(1).Expand().Border(wxALL) );
 
     panel->SetSizerAndFit(topSizer);
 
@@ -4132,7 +4153,7 @@ wxPanel* SettingsDialog::CreateAestheticSettingsPage(wxWindow* parent)
     item0->Add(itemSizer5, 0, wxGROW|wxLEFT|wxRIGHT, 5);
 #endif
 
-    topSizer->Add( item0, wxSizerFlags(1).Expand().Border(wxALL, 5) );
+    topSizer->Add( item0, wxSizerFlags(1).Expand().Border(wxALL) );
     topSizer->AddSpacer(5);
 
     panel->SetSizerAndFit(topSizer);

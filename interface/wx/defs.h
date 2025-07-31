@@ -537,8 +537,9 @@ enum wxBackgroundStyle
         Indicates that the window background is not erased, letting the parent
         window show through.
 
-        Currently this style is only supported in wxOSX and wxGTK with
-        compositing available, see wxWindow::IsTransparentBackgroundSupported().
+        This style is only supported in wxOSX, wxGTK with compositing available,
+        wxMSW since 3.3.0 and wxQt.
+        see wxWindow::IsTransparentBackgroundSupported().
      */
     wxBG_STYLE_TRANSPARENT,
 };
@@ -1868,6 +1869,19 @@ template <typename T> void wxDELETEA(T*& array);
     @since 3.3.0
 */
 #define wxWARN_UNUSED __attribute__((warn_unused))
+
+/**
+    Return the size of the container as int.
+
+    This is similar to C++20 std::ssize() but can be used even even when not
+    using C++20 (if you do use it, please use the standard function).
+
+    @header{wx/defs.h}
+
+    @since 3.3.0
+ */
+template <class C>
+int wxSsize(const C& c);
 
 /**
     Swaps the contents of two variables.

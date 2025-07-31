@@ -861,7 +861,7 @@ void MyFrame::OnGetColOrder(wxCommandEvent& WXUNUSED(event))
                                 n, m_listCtrl->GetColumnIndexFromOrder(n));
     }
 
-    wxLogMessage("%s", msg);
+    wxLogMessage(msg);
 }
 
 #endif // wxHAS_LISTCTRL_COLUMN_ORDER
@@ -1580,7 +1580,9 @@ void MyListCtrl::OnContextMenu(wxContextMenuEvent& event)
             point = ScreenToClient(point);
         }
         int flags;
-        ShowContextMenu(point, HitTest(point, flags));
+        long sub;
+        long hitItem = HitTest(point, flags, &sub);
+        ShowContextMenu(point, hitItem, sub);
     }
     else
     {
@@ -1592,10 +1594,10 @@ void MyListCtrl::OnContextMenu(wxContextMenuEvent& event)
 }
 #endif
 
-void MyListCtrl::ShowContextMenu(const wxPoint& pos, long item)
+void MyListCtrl::ShowContextMenu(const wxPoint& pos, long item, long sub)
 {
     wxMenu menu;
-    menu.Append(wxID_ANY, wxString::Format("Menu for item %ld", item));
+    menu.Append(wxID_ANY, wxString::Format("Menu for item %ld, subitem %ld", item, sub));
     menu.Append(wxID_ABOUT, "&About");
     menu.AppendSeparator();
     menu.Append(wxID_EXIT, "E&xit");

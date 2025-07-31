@@ -407,13 +407,7 @@
         <install-to>$(LIBDIR)</install-to>
     </template>
 
-    <template id="3rdparty_lib" template="common_settings,anylib">
-        <if cond="FORMAT=='autoconf'">
-            <libname>$(id)$(WX_LIB_FLAVOUR)-$(WX_RELEASE)$(HOST_SUFFIX)</libname>
-        </if>
-        <if cond="FORMAT!='autoconf'">
-            <libname>$(id)$(WXDEBUGFLAG)$(HOST_SUFFIX)</libname>
-        </if>
+    <template id="3rdparty_lib_base" template="common_settings,anylib">
         <!--
         we want to install 3rd party libs system-wide only with static
         version of wxWidgets; otherwise they are embedded in shared libs:
@@ -438,6 +432,33 @@
         </if>
     </template>
 
+    <!--
+        This template is used for most third party libraries.
+
+        Note: when inheriting from this template, template_append should
+        be normally used instead of just template, to ensure that the built-in
+        third party libraries include directories appear before the ones
+        defined here (which could include the same headers).
+    -->
+    <template id="3rdparty_lib" template="3rdparty_lib_base">
+        <if cond="FORMAT=='autoconf'">
+            <libname>$(id)$(WX_LIB_FLAVOUR)-$(WX_RELEASE)$(HOST_SUFFIX)</libname>
+        </if>
+        <if cond="FORMAT!='autoconf'">
+            <libname>$(id)$(WXDEBUGFLAG)$(HOST_SUFFIX)</libname>
+        </if>
+    </template>
+
+    <!-- This one is only used by wxregex currently and additionally includes
+         "u" suffix in the library name for compatibility. -->
+    <template id="3rdparty_lib_u" template="3rdparty_lib_base">
+        <libname cond="FORMAT=='autoconf'">
+            $(id)u$(WXDEBUGFLAG)$(WX_LIB_FLAVOUR)-$(WX_RELEASE)$(HOST_SUFFIX)
+        </libname>
+        <libname cond="FORMAT!='autoconf'">
+            $(id)u$(WXDEBUGFLAG)$(HOST_SUFFIX)
+        </libname>
+    </template>
 
     <!-- deal with the need to copy setup.h here: -->
 
@@ -529,6 +550,7 @@ $(TAB)cl /EP /nologo "$(DOLLAR)(InputPath)" > "$(SETUPHDIR)\wx\msw\rcdefs.h"
     <include file="regex.bkl"/>
     <include file="zlib.bkl"/>
     <include file="png.bkl"/>
+    <include file="webp.bkl"/>
     <include file="jpeg.bkl"/>
     <include file="tiff.bkl"/>
     <include file="expat.bkl"/>
@@ -645,6 +667,7 @@ $(TAB)cl /EP /nologo "$(DOLLAR)(InputPath)" > "$(SETUPHDIR)\wx\msw\rcdefs.h"
         <sys-lib>$(LIB_TIFF)</sys-lib>
         <sys-lib>$(LIB_JPEG)</sys-lib>
         <sys-lib>$(LIB_PNG)</sys-lib>
+        <sys-lib>$(LIB_WEBP)</sys-lib>
         <ldlibs>$(LIB_GTK)</ldlibs>
         <ldlibs>$(EXTRALIBS_FOR_GUI)</ldlibs>
     </template>
@@ -763,6 +786,7 @@ $(TAB)cl /EP /nologo "$(DOLLAR)(InputPath)" > "$(SETUPHDIR)\wx\msw\rcdefs.h"
         <depends>wxtiff</depends>
         <depends>wxjpeg</depends>
         <depends>wxpng</depends>
+        <depends>wxwebp</depends>
         <depends>wxscintilla</depends>
         <depends>wxlexilla</depends>
     </template>
@@ -779,6 +803,7 @@ $(TAB)cl /EP /nologo "$(DOLLAR)(InputPath)" > "$(SETUPHDIR)\wx\msw\rcdefs.h"
         <include>$(INC_TIFF)</include>
         <include>$(INC_JPEG)</include>
         <include>$(INC_PNG)</include>
+        <include>$(INC_WEBP)</include>
     </template>
 
     <template id="wx_lib"

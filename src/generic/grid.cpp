@@ -3135,7 +3135,12 @@ wxGrid::SetTable(wxGridTableBase *table,
 
     InvalidateBestSize();
 
-    UpdateCurrentCellOnRedim();
+    // If we already have a valid current cell, ensure that it is in valid
+    // range for the new table with a possibly different number of rows/columns
+    // but don't do anything if the current cell is invalid, setting the table
+    // shouldn't automatically select the cell at (0, 0).
+    if ( m_currentCellCoords != wxGridNoCellCoords )
+        UpdateCurrentCellOnRedim();
 
     return m_created;
 }
@@ -7700,6 +7705,7 @@ void wxGrid::DrawTextRectangle(wxDC& dc,
             break;
 
         case wxALIGN_CENTRE:
+        case wxALIGN_CENTRE_VERTICAL:
             if ( textOrientation == wxHORIZONTAL )
                 y = rect.y + ((rect.height - textHeight) / 2);
             else
@@ -7741,6 +7747,7 @@ void wxGrid::DrawTextRectangle(wxDC& dc,
                 break;
 
             case wxALIGN_CENTRE:
+            case wxALIGN_CENTRE_HORIZONTAL:
                 if ( textOrientation == wxHORIZONTAL )
                     x = rect.x + ((rect.width - lineWidth) / 2);
                 else
@@ -11920,7 +11927,7 @@ void wxGrid::SetName(const wxString &name)
 
 bool wxGrid::Reparent(wxWindowBase *newParent)
 {
-    bool changed = wxWindowBase::Reparent(newParent);
+    bool changed = wxScrolledCanvas::Reparent(newParent);
     if ( changed )
     {
         wxAccessible::NotifyEvent(wxACC_EVENT_OBJECT_PARENTCHANGE, this, wxOBJID_CLIENT, wxACC_SELF);

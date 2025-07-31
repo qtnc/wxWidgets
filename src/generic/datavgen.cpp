@@ -306,6 +306,9 @@ public:
     wxDataViewCtrl *GetOwner() const
         { return static_cast<wxDataViewCtrl *>(GetParent()); }
 
+    virtual wxWindow *GetMainWindowOfCompositeControl() override
+        { return GetOwner(); }
+
     // Add/Remove additional column to sorting columns
     void ToggleSortByColumn(int column)
     {
@@ -776,6 +779,9 @@ public:
 
     wxDataViewModel* GetModel() { return GetOwner()->GetModel(); }
     const wxDataViewModel* GetModel() const { return GetOwner()->GetModel(); }
+
+    virtual wxWindow *GetMainWindowOfCompositeControl() override
+        { return GetOwner(); }
 
 #if wxUSE_DRAG_AND_DROP
     wxBitmap CreateItemBitmap( unsigned int row, int &indent );
@@ -2534,7 +2540,6 @@ void wxDataViewMainWindow::OnPaint( wxPaintEvent &WXUNUSED(event) )
 
     // prepare the DC
     GetOwner()->PrepareDC( dc );
-    dc.SetFont( GetFont() );
 
     wxRect update = GetUpdateRegion().GetBox();
     m_owner->CalcUnscrolledPosition( update.x, update.y, &update.x, &update.y );
@@ -4115,6 +4120,12 @@ void wxDataViewMainWindow::Collapse(unsigned int row)
         if ( m_selection.OnItemsDeleted(row + 1, countDeletedRows) )
         {
             SendSelectionChangedEvent(GetItemByRow(row));
+
+            // The event handler for wxEVT_DATAVIEW_SELECTION_CHANGED could
+            // have called Collapse() itself, in which case the node would be
+            // already closed and we shouldn't try to close it again.
+            if ( !node->IsOpen() )
+                return;
         }
 
         node->ToggleOpen(this);
@@ -7001,7 +7012,9 @@ wxAccStatus wxDataViewCtrlAccessible::GetDescription(int childId, wxString* desc
     if ( childId == wxACC_SELF )
     {
         wxDataViewMainWindow* dvWnd = wxDynamicCast(dvCtrl->GetMainWindow(), wxDataViewMainWindow);
-        *description = wxString::Format(_("%s (%d items)"),
+        *description = wxString::Format(
+                                        // TRANSLATORS: Name of data view control and number of rows
+                                        _("%s (%d items)"),
                                         dvCtrl->GetName().c_str(), dvWnd->GetRowCount());
     }
     else

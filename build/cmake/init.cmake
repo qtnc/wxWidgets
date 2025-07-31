@@ -52,6 +52,8 @@ else()
 endif()
 
 if(MSVC)
+    if(CMAKE_VERSION VERSION_LESS "3.15")
+    # CMake 3.15 and later use MSVC_RUNTIME_LIBRARY property, see functions.cmake
     # Determine MSVC runtime library flag
     set(MSVC_LIB_USE "/MD")
     set(MSVC_LIB_REPLACE "/MT")
@@ -79,6 +81,15 @@ if(MSVC)
               "Flags used by the CXX compiler during ${cfg_upper} builds." FORCE)
         endif()
     endforeach()
+    endif()
+
+    if(wxBUILD_SHARED AND wxBUILD_USE_STATIC_RUNTIME AND wxUSE_STD_IOSTREAM)
+        # Objects like std::cout are defined as extern in <iostream> and implemented in libcpmt.
+        # This is statically linked into wxbase (stdstream.cpp).
+        # When building an application with both wxbase and libcpmt,
+        # the linker gives 'multiply defined symbols' error.
+        message(WARNING "wxUSE_STD_IOSTREAM combined with wxBUILD_USE_STATIC_RUNTIME will fail to link when using std::cout or similar functions")
+    endif()
 
     if(wxBUILD_OPTIMISE)
         set(MSVC_LINKER_RELEASE_FLAGS " /LTCG /OPT:REF /OPT:ICF")
@@ -195,6 +206,14 @@ if(WIN32_MSVC_NAMING)
     endif()
 
     set(wxPLATFORM_LIB_DIR "${wxCOMPILER_PREFIX}${wxARCH_SUFFIX}${lib_suffix}")
+
+    # Generator expression to not create different Debug and Release directories
+    set(GEN_EXPR_DIR "$<1:/>")
+    set(wxINSTALL_INCLUDE_DIR "include")
+else()
+    set(GEN_EXPR_DIR "/")
+    wx_get_flavour(lib_flavour "-")
+    set(wxINSTALL_INCLUDE_DIR "include/wx-${wxMAJOR_VERSION}.${wxMINOR_VERSION}${lib_flavour}")
 endif()
 
 if(wxBUILD_CUSTOM_SETUP_HEADER_PATH)
@@ -449,6 +468,7 @@ if(wxUSE_GUI)
     if(wxUSE_OPENGL)
         if(WXOSX_IPHONE)
             set(OPENGL_FOUND TRUE)
+            set(OPENGL_INCLUDE_DIR "")
             set(OPENGL_LIBRARIES "-framework OpenGLES" "-framework QuartzCore" "-framework GLKit")
         else()
             find_package(OpenGL)
@@ -537,7 +557,7 @@ if(wxUSE_GUI)
             if(NOT (CMAKE_CXX_STANDARD GREATER_EQUAL 17 OR wxHAVE_CXX17))
                 # We shouldn't disable this option as it's disabled by default and
                 # if it is on, it means that CEF is meant to be used, but we can't
-                # continue neither as libcef_dll_wrapper will fail to build
+                # continue either as libcef_dll_wrapper will fail to build
                 # (actually it may still succeed with CEF v116 which provided
                 # its own stand-in for std::in_place used in CEF headers, but
                 # not with the later versions, so just fail instead of trying

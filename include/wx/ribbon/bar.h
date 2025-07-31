@@ -62,7 +62,9 @@ public:
         , m_page(page)
     {
     }
-    wxEvent *Clone() const override { return new wxRibbonBarEvent(*this); }
+
+    wxRibbonBarEvent(const wxRibbonBarEvent& e) = default;
+    wxNODISCARD wxEvent *Clone() const override { return new wxRibbonBarEvent(*this); }
 
     wxRibbonPage* GetPage() {return m_page;}
     void SetPage(wxRibbonPage* page) {m_page = page;}

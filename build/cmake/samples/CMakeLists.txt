@@ -67,7 +67,7 @@ if(wxUSE_HTML)
     include(html.cmake)
 endif()
 wx_add_sample(image image.cpp canvas.cpp canvas.h RES image.rc
-    DATA horse.png horse.jpg horse.bmp horse.gif horse.pcx horse.pnm
+    DATA horse.png horse.jpg horse.bmp horse.gif horse.pcx horse.pnm horse.webp
     horse_ag.pnm horse_rg.pnm horse.tif horse.tga horse.xpm horse.cur
     horse.ico horse3.ani horse.svg smile.xbm toucan.png cmyk.jpg cursor.png
     NAME imagesample DEPENDS wxUSE_IMAGE)
@@ -144,6 +144,7 @@ wx_add_sample(taskbar tbtest.cpp tbtest.h DATA info.svg DEPENDS wxUSE_TASKBARICO
 wx_add_sample(text DEPENDS wxUSE_TEXTCTRL)
 wx_add_sample(thread DEPENDS wxUSE_THREADS)
 wx_add_sample(toolbar RES toolbar.rc DEPENDS wxUSE_TOOLBAR)
+wx_add_sample(touchtest touchtest.cpp)
 wx_add_sample(treectrl treetest.cpp treetest.h DEPENDS wxUSE_TREECTRL)
 wx_add_sample(treelist DEPENDS wxUSE_TREELISTCTRL)
 wx_add_sample(typetest typetest.cpp typetest.h)
@@ -275,8 +276,14 @@ if(WIN32)
 
     if(WXMSW)
         wx_add_sample(nativdlg nativdlg.cpp nativdlg.h resource.h RES nativdlg.rc)
-        #TODO: reenable when sample is fixed
-        #wx_add_sample(mfc mfctest.cpp mfctest.h resource.h stdafx.h RES mfctest.rc)
         wx_add_sample(taskbarbutton DEPENDS wxUSE_TASKBARBUTTON)
+
+        # only check if MFC is available when the mfc sample is enabled
+        if(wxBUILD_SAMPLES STREQUAL "ALL")
+            find_package(MFC QUIET)
+            if(MFC_FOUND)
+                wx_add_sample(mfc mfctest.cpp mfctest.h resource.h stdafx.h RES mfctest.rc)
+            endif()
+        endif()
     endif()
 endif()

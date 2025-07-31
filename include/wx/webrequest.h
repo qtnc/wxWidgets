@@ -198,8 +198,6 @@ public:
 
     void SetHeader(const wxString& name, const wxString& value);
 
-    void AddHeader(const wxString& name, const wxString& value);
-
     void SetMethod(const wxString& method);
 
     void SetData(const wxString& text, const wxString& contentType, const wxMBConv& conv = wxConvUTF8);
@@ -494,7 +492,7 @@ public:
 
     void SetDataBuffer(const wxMemoryBuffer& dataBuf) { m_dataBuf = dataBuf; }
 
-    wxEvent* Clone() const override { return new wxWebRequestEvent(*this); }
+    wxNODISCARD wxEvent* Clone() const override { return new wxWebRequestEvent(*this); }
 
 private:
     wxWebRequest::State m_state;

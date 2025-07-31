@@ -28,6 +28,8 @@
 
 #include "waitfor.h"
 
+#include <memory>
+
 // To disable tests which work locally, but not when run on GitHub CI.
 #if defined(__WXGTK__) && !defined(__WXGTK3__)
     #define wxSKIP_AUTOMATIC_TEST_IF_GTK2() \
@@ -425,7 +427,8 @@ GridTestCase::~GridTestCase()
     if ( win )
         win->ReleaseMouse();
 
-    wxDELETE(m_grid);
+    m_grid->Hide(); // This fixes a crash in Github Actions when using wxQt
+    delete m_grid;
     delete m_tempGrid;
 }
 
@@ -832,8 +835,8 @@ TEST_CASE_METHOD(GridTestCase, "Grid::Cursor", "[grid]")
     m_grid->SetCellValue(0, 1, "more text");
     m_grid->SetCellValue(3, 1, "extra text");
 
-    m_grid->Update();
     m_grid->Refresh();
+    m_grid->Update();
 
     m_grid->MoveCursorLeftBlock(false);
 
@@ -2616,6 +2619,19 @@ TEST_CASE("GridBlockCoords::SymDifference", "[grid]")
         CHECK(result.m_parts[2] == wxGridNoBlockCoords);
         CHECK(result.m_parts[3] == wxGridNoBlockCoords);
     }
+}
+
+TEST_CASE("wxGrid::Events", "[grid][event]")
+{
+    const std::unique_ptr<wxGrid> grid(new wxGrid());
+
+    EventCounter selectEvents(grid.get(), wxEVT_GRID_SELECT_CELL);
+
+    REQUIRE( grid->Create(wxTheApp->GetTopWindow(), wxID_ANY) );
+    grid->CreateGrid(1, 1);
+
+    // Creating grid shouldn't result in any selection change events.
+    CHECK( selectEvents.GetCount() == 0 );
 }
 
 //

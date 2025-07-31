@@ -39,10 +39,23 @@ enum wxAuiManagerOption
     wxAUI_MGR_VENETIAN_BLINDS_HINT     = 1 << 4,
     /// The possible location for docking is indicated by a rectangular outline.
     wxAUI_MGR_RECTANGLE_HINT           = 1 << 5,
-    /// The translucent area where the pane could be docked appears gradually.
+    /**
+        The translucent area where the pane could be docked appears gradually.
+
+        Note that this flag was included in the default flags until wxWidgets
+        3.3.0 but this is not the case in the newer versions. If you'd like to
+        still show the hint progressively, you need to explicitly add it to
+        wxAUI_MGR_DEFAULT.
+     */
     wxAUI_MGR_HINT_FADE                = 1 << 6,
-    /// Used in complement of wxAUI_MGR_VENETIAN_BLINDS_HINT to show the hint immediately.
-    wxAUI_MGR_NO_VENETIAN_BLINDS_FADE  = 1 << 7,
+    /**
+        Style which disabled the fade-in effect for the docking hint when using
+        Venetian blinds hint.
+
+        This style is obsolete and doesn't do anything any longer, fade-in
+        effect is only enabled when wxAUI_MGR_HINT_FADE is used.
+     */
+    wxAUI_MGR_NO_VENETIAN_BLINDS_FADE  = 0,
     /// When a docked pane is resized, its content is refreshed in live (instead of moving
     /// the border alone and refreshing the content at the end).
     /// Since wxWidgets 3.3.0 this flag is included in the default flags.
@@ -50,8 +63,6 @@ enum wxAuiManagerOption
     /// Default behaviour.
     wxAUI_MGR_DEFAULT = wxAUI_MGR_ALLOW_FLOATING |
                         wxAUI_MGR_TRANSPARENT_HINT |
-                        wxAUI_MGR_HINT_FADE |
-                        wxAUI_MGR_NO_VENETIAN_BLINDS_FADE |
                         wxAUI_MGR_LIVE_RESIZE
 };
 
@@ -60,7 +71,7 @@ enum wxAuiManagerOption
 
     wxAuiManager is the central class of the wxAUI class framework.
 
-    wxAuiManager manages the panes associated with it for a particular wxFrame,
+    wxAuiManager manages the panes associated with it for a particular window,
     using a pane's wxAuiPaneInfo information to determine each pane's docking
     and floating behaviour.
 
@@ -76,18 +87,18 @@ enum wxAuiManagerOption
     flicker, by modifying more than one pane at a time, and then "committing"
     all of the changes at once by calling Update().
 
-    Panes can be added quite easily:
+    Panes can be added using AddPane():
 
     @code
-    wxTextCtrl* text1 = new wxTextCtrl(this, -1);
-    wxTextCtrl* text2 = new wxTextCtrl(this, -1);
+    wxTextCtrl* text1 = new wxTextCtrl(this, wxID_ANY);
+    wxTextCtrl* text2 = new wxTextCtrl(this, wxID_ANY);
     m_mgr.AddPane(text1, wxLEFT, "Pane Caption");
     m_mgr.AddPane(text2, wxBOTTOM, "Pane Caption");
     m_mgr.Update();
     @endcode
 
-    Later on, the positions can be modified easily. The following will float
-    an existing pane in a tool window:
+    Later on, the positions and other attributes can be modified, e.g. the
+    following will float an existing pane in a tool window:
 
     @code
     m_mgr.GetPane(text1).Float();
@@ -141,9 +152,11 @@ enum wxAuiManagerOption
            instead.
     @style{wxAUI_MGR_HINT_FADE}
            The translucent area where the pane could be docked appears gradually.
+           Note that this flag is not included in wxAUI_MGR_DEFAULT since
+           wxWidgets 3.3.0 any longer.
     @style{wxAUI_MGR_NO_VENETIAN_BLINDS_FADE}
-           Used in complement of wxAUI_MGR_VENETIAN_BLINDS_HINT to show the
-           docking hint immediately.
+           This style is obsolete and doesn't do anything, it is only defined
+           as 0 for compatibility.
     @style{wxAUI_MGR_LIVE_RESIZE}
            When a docked pane is resized, its content is refreshed in live (instead of moving
            the border alone and refreshing the content at the end). Note that
@@ -152,8 +165,8 @@ enum wxAuiManagerOption
            always enabled in wxGTK3 and wxOSX ports as non-live resizing is not
            implemented in them.
     @style{wxAUI_MGR_DEFAULT}
-           Default behaviour, combines: wxAUI_MGR_ALLOW_FLOATING | wxAUI_MGR_TRANSPARENT_HINT |
-           wxAUI_MGR_HINT_FADE | wxAUI_MGR_NO_VENETIAN_BLINDS_FADE.
+           Default behaviour, combines ::wxAUI_MGR_ALLOW_FLOATING,
+           ::wxAUI_MGR_TRANSPARENT_HINT and ::wxAUI_MGR_LIVE_RESIZE.
     @endStyleTable
 
     @beginEventEmissionTable{wxAuiManagerEvent}
@@ -184,13 +197,14 @@ public:
     /**
         Constructor.
 
-        @param managed_wnd
-            Specifies the wxFrame which should be managed.
+        @param managedWindow
+            Specifies the window which will contain AUI panes. If it is not
+            specified here, it must be set later using SetManagedWindow().
         @param flags
             Specifies the frame management behaviour and visual effects
             with the ::wxAuiManagerOption's style flags.
     */
-    wxAuiManager(wxWindow* managed_wnd = nullptr,
+    wxAuiManager(wxWindow* managedWindow = nullptr,
                  unsigned int flags = wxAUI_MGR_DEFAULT);
 
     /**
@@ -530,11 +544,17 @@ public:
     void SetFlags(unsigned int flags);
 
     /**
-        Called to specify the frame or window which is to be managed by wxAuiManager.
-        Frame management is not restricted to just frames.  Child windows or custom
-        controls are also allowed.
+        Set the window which is to be managed by wxAuiManager.
+
+        This window will often be a wxFrame but an arbitrary child window can
+        also be used.
+
+        Note that wxAuiManager handles many events for the managed window,
+        including ::wxEVT_SIZE, so any application-defined handlers for this
+        window should take care to call wxEvent::Skip() to let wxAuiManager
+        perform its own processing.
     */
-    void SetManagedWindow(wxWindow* managed_wnd);
+    void SetManagedWindow(wxWindow* managedWindow);
 
     /**
         This function is used to show a hint window at the specified rectangle.
@@ -752,9 +772,27 @@ public:
     //@{
     /**
         FloatingSize() sets the size of the floating pane.
+
+        FloatingClientSize() has precedence over this, i.e. this size is ignored
+        if the floating client size is specified.
     */
     wxAuiPaneInfo& FloatingSize(const wxSize& size);
     wxAuiPaneInfo& FloatingSize(int x, int y);
+    //@}
+
+    //@{
+    /**
+        FloatingClientSize() sets the client size of the floating pane.
+
+        This has precedence over FloatingSize(), i.e. FloatingSize() is ignored
+        if this is specified.
+
+        @see wxWindow::SetClientSize
+
+        @since 3.3.1
+    */
+    wxAuiPaneInfo& FloatingClientSize(const wxSize& size);
+    wxAuiPaneInfo& FloatingClientSize(int x, int y);
     //@}
 
     /**

@@ -118,7 +118,7 @@ wxCFEventLoop::DefaultModeObserverCallBack(CFRunLoopObserverRef WXUNUSED(observe
     if ( activity & kCFRunLoopBeforeTimers )
     {
     }
-    
+
     if ( activity & kCFRunLoopBeforeWaiting )
     {
     }
@@ -134,7 +134,7 @@ wxCFEventLoop::wxCFEventLoop()
 #if wxUSE_UIACTIONSIMULATOR
     m_shouldWaitForEvent = false;
 #endif
-    
+
     m_runLoop = CFGetCurrentRunLoop();
 
     CFRunLoopObserverContext ctxt;
@@ -355,12 +355,9 @@ int wxCFEventLoop::DoRun()
     return m_exitcode;
 }
 
-// sets the "should exit" flag and wakes up the loop so that it terminates
-// soon
-void wxCFEventLoop::ScheduleExit(int rc)
+void wxCFEventLoop::DoStop(int rc)
 {
     m_exitcode = rc;
-    m_shouldExit = true;
     OSXDoStop();
 }
 

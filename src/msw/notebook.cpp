@@ -51,7 +51,7 @@
 #define IS_VALID_PAGE(nPage) ((nPage) < GetPageCount())
 
 // you can set USE_NOTEBOOK_ANTIFLICKER to 0 for desktop Windows versions too
-// to disable code whih results in flicker-less notebook redrawing at the
+// to disable code which results in flicker-less notebook redrawing at the
 // expense of some extra GDI resource consumption
 #define USE_NOTEBOOK_ANTIFLICKER    1
 
@@ -311,6 +311,11 @@ int wxNotebook::MSWGetToolTipMessage() const
 
 wxNotebook::~wxNotebook()
 {
+    // Make sure we don't try to repaint the notebook any more: not only is
+    // this useless, it can also crash when calling member functions of a
+    // half-destroyed object.
+    Unbind(wxEVT_PAINT, &wxNotebook::OnPaint, this);
+
 #if wxUSE_UXTHEME
     if ( m_hbrBackground )
         ::DeleteObject((HBRUSH)m_hbrBackground);
@@ -607,7 +612,7 @@ wxNotebookPage *wxNotebook::DoRemovePage(size_t nPage)
 
     if ( m_pages.empty() )
     {
-        // no selection any more, the notebook becamse empty
+        // no selection any more, the notebook becomes empty
         m_selection = wxNOT_FOUND;
     }
     else // notebook still not empty
@@ -616,9 +621,9 @@ wxNotebookPage *wxNotebook::DoRemovePage(size_t nPage)
         if ( selNew != wxNOT_FOUND )
         {
             // No selection change, just refresh the current selection.
-            // Because it could be that the slection index changed
+            // Because it could be that the selection index changed
             // we need to update it.
-            // Note: this does not mean the selection it self changed.
+            // Note: this does not mean the selection itself changed.
             m_selection = selNew;
             m_pages[m_selection]->Refresh();
         }
@@ -911,15 +916,15 @@ int wxNotebook::MSWHitTestLeftRight(const wxPoint& pt, long *flags) const
             // restart the app in between) and look where the hitbox is
             // located, then adjust the values until they look right.
             int displacement;
-            if (scale <= 1.0f)
+            if (scale <= 1.0)
                 displacement = 3;
-            else if (scale <= 1.25f)
+            else if (scale <= 1.25)
                 displacement = 8;
-            else if (scale <= 1.50f)
+            else if (scale <= 1.50)
                 displacement = 14;
-            else if (scale <= 1.75f)
+            else if (scale <= 1.75)
                 displacement = 3;
-            else if (scale <= 2.00f)
+            else if (scale <= 2.00)
                 displacement = 6;
             else
                 displacement = 12;
@@ -1089,7 +1094,7 @@ void
 DrawNotebookTab(wxWindow* win,
                 wxDC& dc,
                 const wxRect& rectOrig,
-                const wxString& text,
+                const wxString& label,
                 const wxBitmap& image,
                 wxDirection tabOrient,
                 int flags = wxCONTROL_NONE)
@@ -1169,6 +1174,9 @@ DrawNotebookTab(wxWindow* win,
 
     rectLabel.Deflate(labelOffset);
 
+    wxString text;
+    int mnemonicIndex = wxControl::FindAccelIndex(label, &text);
+
     // Draw the label and the image, if any.
     switch ( tabOrient )
     {
@@ -1176,7 +1184,8 @@ DrawNotebookTab(wxWindow* win,
         case wxBOTTOM:
             // We can use an existing helper that will do everything for us.
             dc.DrawLabel(text, image, rectLabel,
-                         wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+                         wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL,
+                         mnemonicIndex);
             break;
 
         case wxLEFT:
@@ -1234,6 +1243,8 @@ DrawNotebookTab(wxWindow* win,
 
                     dc.DrawRotatedText(text, rect.GetRight() - textOfs, y, -90.0);
                 }
+
+                // TODO: We don't underline mnemonic when drawing vertically.
             }
             break;
 
@@ -1626,7 +1637,7 @@ void wxNotebook::OnNavigationKey(wxNavigationKeyEvent& event)
         {
             // no, it doesn't come from child, case (b) or (c): forward to a
             // page but only if entering notebook page (i.e. direction is
-            // backwards (Shift-TAB) comething from out-of-notebook, or
+            // backwards (Shift-TAB) something from out-of-notebook, or
             // direction is forward (TAB) from ourselves),
             if ( m_selection != wxNOT_FOUND &&
                     (!event.GetDirection() || isFromSelf) )
@@ -1660,8 +1671,14 @@ void wxNotebook::OnNavigationKey(wxNavigationKeyEvent& event)
             else if ( parent )
             {
                 event.SetCurrentFocus(this);
-                parent->HandleWindowEvent(event);
-            }
+                if ( !parent->HandleWindowEvent(event) )
+                {
+                    // if the parent didn't handle this event, the notebook
+                    // must be its only child accepting focus, so take it
+                    event.Skip(false);
+                    SetFocus();
+                }
+             }
         }
     }
 }
@@ -1802,56 +1819,33 @@ bool wxNotebook::MSWPrintChild(WXHDC hDC, wxWindow *child)
 // Windows only: attempts to get colour for UX theme page background
 wxColour wxNotebook::GetThemeBackgroundColour() const
 {
+    if ( wxMSWDarkMode::IsActive() )
+    {
+        // We know the colour used in dark mode as we draw the notebook
+        // ourselves, so just return it (especially because the code below
+        // would return totally inappropriate light mode colour).
+        return GetBackgroundColour();
+    }
+
 #if wxUSE_UXTHEME
     if (wxUxThemeIsActive())
     {
         wxUxThemeHandle hTheme(this, L"TAB");
         if (hTheme)
         {
-            // This is total guesswork.
-            // See PlatformSDK\Include\Tmschema.h for values.
-            // JACS: can also use 9 (TABP_PANE)
-            wxColour colour = hTheme.GetColour(TABP_BODY, TMT_FILLCOLORHINT, TIS_NORMAL);
-            if ( !colour.IsOk() )
-                return GetBackgroundColour();
+            // Probe the colour of the background: note that we need to use a
+            // bitmap bigger than 1*1 because it may have borders of different
+            // colour. But this size should hopefully be enough for the central
+            // pixel not to belong to any border.
+            const wxSize size(10, 10);
 
-            /*
-            [DS] Workaround for WindowBlinds:
-            Some themes return a near black theme color using FILLCOLORHINT,
-            this makes notebook pages have an ugly black background and makes
-            text (usually black) unreadable. Retry again with FILLCOLOR.
+            wxBitmap bmp(size);
+            wxMemoryDC memdc(bmp);
+            hTheme.DrawBackground(GetHdcOf(memdc), size, TABP_PANE);
 
-            This workaround potentially breaks appearance of some themes,
-            but in practice it already fixes some themes.
-            */
-            if ( colour.GetRGB() == 1 )
-                colour = hTheme.GetColour(TABP_BODY, TMT_FILLCOLOR, TIS_NORMAL);
-
-            // Under Vista, the tab background colour is reported incorrectly.
-            // So for the default theme at least, hard-code the colour to something
-            // that will blend in.
-
-            static int s_AeroStatus = -1;
-            if (s_AeroStatus == -1)
-            {
-                WCHAR szwThemeFile[1024];
-                WCHAR szwThemeColor[256];
-                if (S_OK == ::GetCurrentThemeName(szwThemeFile, 1024, szwThemeColor, 256, nullptr, 0))
-                {
-                    wxString themeFile(szwThemeFile);
-                    if (themeFile.Find(wxT("Aero")) != -1 && wxString(szwThemeColor) == wxT("NormalColor"))
-                        s_AeroStatus = 1;
-                    else
-                        s_AeroStatus = 0;
-                }
-                else
-                    s_AeroStatus = 0;
-            }
-
-            if (s_AeroStatus == 1)
-                colour = wxColour(255, 255, 255);
-
-            return colour;
+            wxColour colour;
+            if ( memdc.GetPixel(size.x/2, size.y/2, &colour) )
+                return colour;
         }
     }
 #endif // wxUSE_UXTHEME

@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   check-unix:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Check Spelling
 
     steps:
@@ -31,7 +31,7 @@ jobs:
 
 
   check-whitespace:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Check Whitespace
 
     steps:
@@ -69,7 +69,7 @@ jobs:
 
 
   check-mixed-eol:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Check Mixed EOL
 
     steps:
@@ -85,7 +85,7 @@ jobs:
             ./misc/scripts/check_mixed_eol.sh
 
   check-cxx-style:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Check C++ Style
 
     steps:
@@ -101,3 +101,15 @@ jobs:
               echo "::error ::Please use C++11 equivalents of the deprecated macros in the new code."
               exit 1
             fi
+
+  check-allheaders:
+    runs-on: ubuntu-latest
+    name: Check All Headers In allheaders.h
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check that all headers are listed in tests/allheaders.h
+        run: |
+            ./misc/scripts/check_allheaders.sh

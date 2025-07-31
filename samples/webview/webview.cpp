@@ -119,6 +119,16 @@ public:
         Private = 2
     };
 
+    enum
+    {
+        ID_CLEAR_BROWSING_DATA_ALL = wxID_HIGHEST + 1,
+        ID_CLEAR_BROWSING_DATA_CACHE,
+        ID_CLEAR_BROWSING_DATA_COOKIES,
+        ID_CLEAR_BROWSING_DATA_DOM_STORAGE,
+        ID_CLEAR_BROWSING_DATA_OTHER,
+        ID_CLEAR_BROWSING_DATA_LAST_HOUR
+    };
+
     WebFrame(const wxString& url, int flags = 0, wxWebViewWindowFeatures* windowFeatures = nullptr);
     virtual ~WebFrame();
 
@@ -184,6 +194,7 @@ public:
     void OnAddUserScript(wxCommandEvent& evt);
     void OnSetCustomUserAgent(wxCommandEvent& evt);
     void OnSetProxy(wxCommandEvent& evt);
+    void OnClearBrowsingData(wxCommandEvent& evt);
     void OnClearSelection(wxCommandEvent& evt);
     void OnDeleteSelection(wxCommandEvent& evt);
     void OnSelectAll(wxCommandEvent& evt);
@@ -563,7 +574,7 @@ WebFrame::WebFrame(const wxString& url, int flags, wxWebViewWindowFeatures* wind
 
         // Chromium backend can't be used immediately after creation, so wait
         // until the browser is created before calling GetUserAgent(), but we
-        // can't do it unconditionally neither as doing it with WebViewGTK
+        // can't do it unconditionally either as doing it with WebViewGTK
         // triggers https://gitlab.gnome.org/GNOME/gtk/-/issues/124 and just
         // kills the sample.
         const auto initShow = [this](){
@@ -591,6 +602,15 @@ WebFrame::WebFrame(const wxString& url, int flags, wxWebViewWindowFeatures* wind
         {
             initShow();
         }
+
+
+        m_browser->Bind(wxEVT_WEBVIEW_BROWSING_DATA_CLEARED, [](wxWebViewEvent& event) {
+            if (event.IsError())
+                wxLogError("Failed to clear browsing data");
+            else
+                wxLogMessage("Browsing data cleared");
+            event.Skip();
+        });
 
 #ifndef __WXMAC__
         //We register the wxfs:// protocol for testing purposes
@@ -651,6 +671,17 @@ WebFrame::WebFrame(const wxString& url, int flags, wxWebViewWindowFeatures* wind
     m_tools_history_menu->AppendSeparator();
 
     m_tools_menu->AppendSubMenu(m_tools_history_menu, "History");
+
+    // Browsing data menu
+    wxMenu* browsingDataMenu = new wxMenu();
+    browsingDataMenu->Append(ID_CLEAR_BROWSING_DATA_ALL, _("All"));
+    browsingDataMenu->Append(ID_CLEAR_BROWSING_DATA_CACHE, _("Cache"));
+    browsingDataMenu->Append(ID_CLEAR_BROWSING_DATA_COOKIES, _("Cookies"));
+    browsingDataMenu->Append(ID_CLEAR_BROWSING_DATA_DOM_STORAGE, _("DOM Storage"));
+    browsingDataMenu->Append(ID_CLEAR_BROWSING_DATA_OTHER, _("Other"));
+    browsingDataMenu->AppendSeparator();
+    browsingDataMenu->Append(ID_CLEAR_BROWSING_DATA_LAST_HOUR, _("All in last hour"));
+    m_tools_menu->AppendSubMenu(browsingDataMenu, _("Clear Browsing Data"));
 
     //Create an editing menu
     wxMenu* editmenu = new wxMenu();
@@ -821,6 +852,7 @@ WebFrame::WebFrame(const wxString& url, int flags, wxWebViewWindowFeatures* wind
     Bind(wxEVT_MENU, &WebFrame::OnAddUserScript, this, addUserScript->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnSetCustomUserAgent, this, setCustomUserAgent->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnSetProxy, this, setProxy->GetId());
+    Bind(wxEVT_MENU, &WebFrame::OnClearBrowsingData, this, ID_CLEAR_BROWSING_DATA_ALL, ID_CLEAR_BROWSING_DATA_LAST_HOUR);
     Bind(wxEVT_MENU, &WebFrame::OnClearSelection, this, m_selection_clear->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnDeleteSelection, this, m_selection_delete->GetId());
     Bind(wxEVT_MENU, &WebFrame::OnSelectAll, this, selectall->GetId());
@@ -1096,8 +1128,10 @@ void WebFrame::OnNavigationRequest(wxWebViewEvent& evt)
         m_info->Dismiss();
     }
 
-    wxLogMessage("%s", "Navigation request to '" + evt.GetURL() + "' (target='" +
-    evt.GetTarget() + "')" + ((evt.IsTargetMainFrame()) ? " mainFrame" : ""));
+    wxLogMessage("Navigation request to '%s' (target='%s')%s",
+                 evt.GetURL(),
+                 evt.GetTarget(),
+                 evt.IsTargetMainFrame() ? " mainFrame" : "");
 
     //If we don't want to handle navigation then veto the event and navigation
     //will not take place, we also need to stop the loading animation
@@ -1117,7 +1151,7 @@ void WebFrame::OnNavigationRequest(wxWebViewEvent& evt)
   */
 void WebFrame::OnNavigationComplete(wxWebViewEvent& evt)
 {
-    wxLogMessage("%s", "Navigation complete; url='" + evt.GetURL() + "'");
+    wxLogMessage("Navigation complete; url='%s'", evt.GetURL());
     UpdateState();
 }
 
@@ -1129,7 +1163,7 @@ void WebFrame::OnDocumentLoaded(wxWebViewEvent& evt)
     //Only notify if the document is the main frame, not a subframe
     if(evt.GetURL() == m_browser->GetCurrentURL())
     {
-        wxLogMessage("%s", "Document loaded; url='" + evt.GetURL() + "'");
+        wxLogMessage("Document loaded; url='%s'", evt.GetURL());
     }
     UpdateState();
 }
@@ -1146,7 +1180,7 @@ void WebFrame::OnNewWindow(wxWebViewEvent& evt)
         flag = " (user)";
     }
 
-    wxLogMessage("%s", "New window; url='" + evt.GetURL() + "'" + flag);
+    wxLogMessage("New window; url='%s'%s", evt.GetURL(), flag);
 
     //If we handle new window events then create a new frame
     if (!m_tools_handle_new_window->IsChecked())
@@ -1185,7 +1219,7 @@ void WebFrame::OnNewWindowFeatures(wxWebViewEvent &evt)
 void WebFrame::OnTitleChanged(wxWebViewEvent& evt)
 {
     SetTitle(GetPrivatePrefix() + evt.GetString());
-    wxLogMessage("%s", "Title changed; title='" + evt.GetString() + "'");
+    wxLogMessage("Title changed; title='%s'", evt.GetString());
 }
 
 void WebFrame::OnFullScreenChanged(wxWebViewEvent & evt)
@@ -1290,7 +1324,7 @@ void WebFrame::OnToolsClicked(wxCommandEvent& WXUNUSED(evt))
     // them at least some name if we don't have anything better.
     const auto makeLabel = [](const wxString& title)
     {
-        return title.empty() ? "(untitled)" : title;
+        return title.empty() ? wxString("(untitled)") : title;
     };
 
     wxMenuItem* item;
@@ -1569,6 +1603,40 @@ void WebFrame::OnSetProxy(wxCommandEvent& WXUNUSED(evt))
         wxLogError("Could not set proxy");
 }
 
+void WebFrame::OnClearBrowsingData(wxCommandEvent &evt)
+{
+    int dataTypes;
+    wxDateTime since((time_t) 0);
+    switch (evt.GetId())
+    {
+        case ID_CLEAR_BROWSING_DATA_ALL:
+            dataTypes = wxWEBVIEW_BROWSING_DATA_ALL;
+            break;
+        case ID_CLEAR_BROWSING_DATA_CACHE:
+            dataTypes = wxWEBVIEW_BROWSING_DATA_CACHE;
+            break;
+        case ID_CLEAR_BROWSING_DATA_COOKIES:
+            dataTypes = wxWEBVIEW_BROWSING_DATA_COOKIES;
+            break;
+        case ID_CLEAR_BROWSING_DATA_DOM_STORAGE:
+            dataTypes = wxWEBVIEW_BROWSING_DATA_DOM_STORAGE;
+            break;
+        case ID_CLEAR_BROWSING_DATA_OTHER:
+            dataTypes = wxWEBVIEW_BROWSING_DATA_OTHER;
+            break;
+        case ID_CLEAR_BROWSING_DATA_LAST_HOUR:
+            dataTypes = wxWEBVIEW_BROWSING_DATA_ALL;
+            since = wxDateTime::Now() - wxTimeSpan::Hour();
+            break;
+        default:
+            wxFAIL_MSG("Unexpected event ID");
+            return;
+    }
+
+    if (!m_browser->ClearBrowsingData(dataTypes, since))
+        wxLogError("Clearing this browsing data type is not supported by this backend");
+}
+
 void WebFrame::OnClearSelection(wxCommandEvent& WXUNUSED(evt))
 {
     m_browser->ClearSelection();
@@ -1607,7 +1675,8 @@ void WebFrame::OnError(wxWebViewEvent& evt)
         WX_ERROR_CASE(wxWEBVIEW_NAV_ERR_OTHER);
     }
 
-    wxLogMessage("%s", "Error; url='" + evt.GetURL() + "', error='" + category + " (" + evt.GetString() + ")'");
+    wxLogMessage("Error; url='%s', error='%s (%s)'",
+                 evt.GetURL(), category, evt.GetString());
 
     //Show the info bar with an error
     m_info->ShowMessage(_("An error occurred loading ") + evt.GetURL() + "\n" +

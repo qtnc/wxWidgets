@@ -1813,11 +1813,7 @@ public:
         The range of the match will be returned as a wxTextSearchResult, which will
         contain -1 values if no match was found.
 
-        This is currently only implemented under wxMSW.
-
         @since 3.3.0
-
-        @onlyfor{wxmsw}
     */
     wxTextSearchResult SearchText(const wxTextSearch& search) const;
 
@@ -2117,8 +2113,8 @@ public:
     void OSXEnableNewLineReplacement(bool enable);
 
     /**
-        Enables the automatic replacement of ASCII quotation marks and
-        apostrophes with their typographic symbols.
+        Enables the automatic replacement of straight (ASCII) quotation marks and
+        apostrophes with smart ("curly") quotes.
 
         This feature is enabled by default.
 
@@ -2128,7 +2124,7 @@ public:
     void OSXEnableAutomaticQuoteSubstitution(bool enable);
 
     /**
-        Enables the automatic conversion of two ASCII hyphens into an m-dash.
+        Enables the automatic conversion of two ASCII hyphens into an em dash.
 
         This feature is enabled by default.
 
@@ -2182,6 +2178,25 @@ public:
         @since 3.3
     */
     GtkEditable *GTKGetEditable();
+
+    /**
+        Sets the content of a multiline text control from a Pango markup buffer.
+
+        This offers more granular control of content formatting, as well as a
+        significant performance benefit with larger content.
+
+        This is the GTK equivalent of SetRTFValue().
+
+        This functionality is only available in GTK versions greater than 3.16,
+        the function does nothing and returns @false when using older GTK
+        version, the application should handle this case and fall back to some
+        other way of setting the control contents.
+
+        @onlyfor{wxgtk}
+
+        @since 3.3
+    */
+    bool GTKSetPangoMarkup(const wxString& str);
 
     ///@}
 

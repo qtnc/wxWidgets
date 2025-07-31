@@ -12,7 +12,6 @@
 #include <memory>
 
 class QShortcut;
-template < class T > class QList;
 
 class QAbstractScrollArea;
 class QPainter;
@@ -195,6 +194,10 @@ protected:
     // capture/release the mouse, used by Capture/ReleaseMouse()
     virtual void DoCaptureMouse() override;
     virtual void DoReleaseMouse() override;
+
+    // freeze/thaw window updates
+    virtual void DoFreeze() override;
+    virtual void DoThaw() override;
 
     // retrieve the position/size of the window
     virtual void DoGetPosition(int *x, int *y) const override;

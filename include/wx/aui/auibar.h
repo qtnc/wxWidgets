@@ -77,7 +77,7 @@ public:
         m_isDropdownClicked = false;
         m_toolId = -1;
     }
-    wxEvent *Clone() const override { return new wxAuiToolBarEvent(*this); }
+    wxNODISCARD wxEvent *Clone() const override { return new wxAuiToolBarEvent(*this); }
 
     bool IsDropDownClicked() const  { return m_isDropdownClicked; }
     void SetDropDownClicked(bool c) { m_isDropdownClicked = c;    }
@@ -269,7 +269,7 @@ public:
     wxAuiToolBarArt() = default;
     virtual ~wxAuiToolBarArt() = default;
 
-    virtual wxAuiToolBarArt* Clone() = 0;
+    wxNODISCARD virtual wxAuiToolBarArt* Clone() = 0;
     virtual void SetFlags(unsigned int flags) = 0;
     virtual unsigned int GetFlags() = 0;
     virtual void SetFont(const wxFont& font) = 0;
@@ -337,6 +337,12 @@ public:
                          wxWindow* wnd,
                          const wxAuiToolBarItem& item) = 0;
 
+    // This function should be used for querying element sizes in the new code,
+    // as it scales them by the DPI of the provided window. GetElementSize()
+    // still exists (and is simpler to override), but is usually _not_ what you
+    // need.
+    virtual int GetElementSizeForWindow(int elementId, const wxWindow* window);
+
     // Note that these functions work with the size in DIPs, not physical
     // pixels.
     virtual int GetElementSize(int elementId) = 0;
@@ -361,7 +367,7 @@ public:
     wxAuiGenericToolBarArt();
     virtual ~wxAuiGenericToolBarArt();
 
-    virtual wxAuiToolBarArt* Clone() override;
+    wxNODISCARD virtual wxAuiToolBarArt* Clone() override;
     virtual void SetFlags(unsigned int flags) override;
     virtual unsigned int GetFlags() override;
     virtual void SetFont(const wxFont& font) override;

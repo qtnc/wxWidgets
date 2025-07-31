@@ -77,6 +77,8 @@ WXDLLIMPEXP_BASE CFURLRef wxOSXCreateURLFromFileSystemPath( const wxString& path
 #include "wx/toplevel.h"
 
 class wxTextProofOptions;
+struct wxTextSearchResult;
+struct wxTextSearch;
 
 class WXDLLIMPEXP_CORE wxMacCGContextStateSaver
 {
@@ -372,6 +374,9 @@ public :
 
     // returns native view which acts as a parent for native children
     virtual WXWidget    GetContainer() const;
+
+    // should be called to enable appropriate borders for native controls with scrollview superviews
+    virtual void        ApplyScrollViewBorderType() { }
 
     // Mechanism used to keep track of whether a change should send an event
     // Do SendEvents(false) when starting actions that would trigger programmatic events
@@ -706,6 +711,8 @@ public :
     wxTextEntry *GetTextEntry() const { return m_entry; }
 
     virtual bool CanFocus() const { return true; }
+
+    virtual wxTextSearchResult SearchText(const wxTextSearch &search) const = 0;
 
     virtual wxString GetStringValue() const = 0 ;
     virtual void SetStringValue( const wxString &val ) = 0 ;
@@ -1078,7 +1085,7 @@ public:
         }
         return *this;
     }
-    
+
     wxNSObjRef& operator=( T ptr )
     {
         if (get() != ptr)

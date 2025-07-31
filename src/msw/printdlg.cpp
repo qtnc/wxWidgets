@@ -39,6 +39,9 @@
 
 #include <stdlib.h>
 
+// This variable is used from src/msw/window.cpp.
+bool wxPrinterDialogShown = false;
+
 // smart pointer like class using OpenPrinter and ClosePrinter
 class WinPrinter
 {
@@ -830,7 +833,18 @@ int wxWindowsPrintDialog::ShowModal()
     PRINTDLGEX* pd = (PRINTDLGEX*) m_printDlg;
     pd->hwndOwner = hWndParent;
 
+    // Printer dialog sends WM_ACTIVATE to the parent window before destroying
+    // itself for some reason, which results in our handler trying to set the
+    // focus back to the last focused window -- and failing, because the window
+    // doesn't have activation yet (it will only once the dialog will have been
+    // destroyed). So ignore these events while it is shown by setting this
+    // variable -- see also the code using it in wxWindow::HandleActivate().
+    wxPrinterDialogShown = true;
+
     HRESULT dlgRes = PrintDlgEx(pd);
+
+    wxPrinterDialogShown = false;
+
     bool ret = (dlgRes == S_OK && pd->dwResultAction == PD_RESULT_PRINT);
 
     pd->hwndOwner = 0;
@@ -890,25 +904,56 @@ bool wxWindowsPrintDialog::ConvertToNative( wxPrintDialogData &data )
     pd->nCopies = (DWORD)data.GetNoCopies();
 
     // Required only if PD_NOPAGENUMS flag is not set.
-    // Currently only one page range is supported.
     if ( data.GetEnablePageNumbers() )
     {
-        pd->nPageRanges = 1;
-        pd->nMaxPageRanges = 1;
-        pd->lpPageRanges = new PRINTPAGERANGE[1];
+        pd->nMaxPageRanges = (DWORD)data.GetMaxPageRanges();
 
-        DWORD nFromPage = (DWORD)data.GetFromPage();
-        DWORD nToPage = (DWORD)data.GetToPage();
+        // Fill the provided PRINTPAGERANGE with valid values, even if the
+        // input data is invalid because otherwise PrintDlgEx() would simply
+        // fail with E_INVALIDARG.
+        auto setPageRange = [](PRINTPAGERANGE* ppr, int from, int to)
+        {
+            DWORD nFromPage = (DWORD)from;
+            DWORD nToPage = (DWORD)to;
 
-        // The page range must be valid, otherwise PrintDlgEx() simply fails
-        // with E_INVALIDARG.
-        if ( !nFromPage )
-            nFromPage = 1;
-        if ( nToPage < nFromPage )
-            nToPage = nFromPage;
+            if ( !nFromPage )
+                nFromPage = 1;
+            if ( nToPage < nFromPage )
+                nToPage = nFromPage;
 
-        pd->lpPageRanges[0].nFromPage = nFromPage;
-        pd->lpPageRanges[0].nToPage = nToPage;
+            ppr->nFromPage = nFromPage;
+            ppr->nToPage = nToPage;
+        };
+
+        const wxVector<wxPrintPageRange>& ranges = data.GetPageRanges();
+        if ( ranges.empty() )
+        {
+            // Use values for from/to page here to define a single range (which
+            // will usually be just "1") for compatibility: it would arguably
+            // make more sense to not define any ranges at all by setting
+            // nPageRanges to 0 (which is allowed, only lpPageRanges must be
+            // non-null), but this would change the behaviour of the existing
+            // code without any real gain, so don't do it, even if this means
+            // that there is currently no way to not show anything at all in
+            // the "Pages" text box of the print dialog.
+            pd->nPageRanges = 1;
+            pd->lpPageRanges = new PRINTPAGERANGE[pd->nMaxPageRanges];
+
+            setPageRange(pd->lpPageRanges, data.GetFromPage(), data.GetToPage());
+        }
+        else
+        {
+            pd->nPageRanges = (DWORD) ranges.size();
+            if ( pd->nPageRanges > pd->nMaxPageRanges )
+                pd->nMaxPageRanges = pd->nPageRanges;
+            pd->lpPageRanges = new PRINTPAGERANGE[pd->nMaxPageRanges];
+
+            PRINTPAGERANGE* ppr = pd->lpPageRanges;
+            for ( const wxPrintPageRange& range : ranges )
+            {
+                setPageRange(ppr++, range.fromPage, range.toPage);
+            }
+        }
     }
 
     pd->Flags = PD_RETURNDC;
@@ -932,7 +977,7 @@ bool wxWindowsPrintDialog::ConvertToNative( wxPrintDialogData &data )
         pd->Flags |= PD_NOCURRENTPAGE;
     if ( !data.GetEnablePageNumbers() )
         pd->Flags |= PD_NOPAGENUMS;
-    else if ( (!data.GetAllPages()) && (!data.GetSelection()) && (!data.GetCurrentPage()) && (data.GetFromPage() != 0) && (data.GetToPage() != 0))
+    else if ( (!data.GetAllPages()) && (!data.GetSelection()) && (!data.GetCurrentPage()) && (!data.GetPageRanges().empty()) )
         pd->Flags |= PD_PAGENUMS;
     if ( data.GetEnableHelp() )
         pd->Flags |= PD_SHOWHELP;
@@ -977,8 +1022,16 @@ bool wxWindowsPrintDialog::ConvertFromNative( wxPrintDialogData &data )
 
     if ( pd->lpPageRanges )
     {
-        data.SetFromPage(pd->lpPageRanges[0].nFromPage);
-        data.SetToPage(pd->lpPageRanges[0].nToPage);
+        wxPrintPageRanges ranges(pd->nPageRanges);
+        const PRINTPAGERANGE* ppr = pd->lpPageRanges;
+        for (auto& range : ranges)
+        {
+            range.fromPage = ppr->nFromPage;
+            range.toPage = ppr->nToPage;
+            ++ppr;
+        }
+
+        data.SetPageRanges(ranges);
     }
 
     data.SetMinPage( pd->nMinPage );

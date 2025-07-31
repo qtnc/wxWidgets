@@ -96,6 +96,7 @@
 **/xcuserdata/
 **/DerivedData/
 /build/osx/build
+/build/osx/__pycache__
 /build/osx/setup/cocoa/include/wx/setup.h
 /build/osx/setup/iphone/include/wx/setup.h
 
@@ -453,6 +454,8 @@
 /utils/wxrc/wxrc_vc[789].sln
 
 /3rdparty/webview2
+/build/cmake/output/
+CMakePresetsUser.json
 
 *.dll
 *.a

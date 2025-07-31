@@ -144,6 +144,15 @@
 #   define wxSUPPRESS_GCC_PRIVATE_DTOR_WARNING(name)
 #endif
 
+/* Enable some warnings not enabled by default if requested. */
+#ifdef wxENABLE_EXTRA_WARNINGS
+#   ifdef __GNUC__
+#       pragma GCC diagnostic warning "-Wcast-qual"
+#       pragma GCC diagnostic warning "-Wdouble-promotion"
+#       pragma GCC diagnostic warning "-Wextra"
+#   endif
+#endif
+
 /*
    Clang Support
  */
@@ -345,6 +354,13 @@ typedef short int WXTYPE;
 
 /* for consistency with wxStatic/DynamicCast defined in wx/object.h */
 #define wxConstCast(obj, className) const_cast<className *>(obj)
+
+/* Poor man's version of C++20 std::ssize(). */
+template <class C>
+int wxSsize(const C& c)
+{
+    return static_cast<int>(c.size());
+}
 
 #endif /* __cplusplus */
 
@@ -1009,27 +1025,6 @@ typedef double wxDouble;
    the new code.
  */
 #define wxNullPtr nullptr
-
-
-/* Define wxChar16 and wxChar32                                              */
-
-#ifdef __cplusplus
-
-#if SIZEOF_WCHAR_T == 2
-    #define wxWCHAR_T_IS_WXCHAR16
-    typedef wchar_t wxChar16;
-#else
-    typedef char16_t wxChar16;
-#endif
-
-#if SIZEOF_WCHAR_T == 4
-    #define wxWCHAR_T_IS_WXCHAR32
-    typedef wchar_t wxChar32;
-#else
-    typedef char32_t wxChar32;
-#endif
-
-#endif /* __cplusplus */
 
 /*
     Helper macro expanding into the given "m" macro invoked with each of the
@@ -2621,10 +2616,6 @@ typedef int (* LINKAGEMODE wxListIterateFunction)(void *current);
 #define DECLARE_WXOSX_OPAQUE_CFREF( name ) typedef struct __##name* name##Ref;
 #define DECLARE_WXOSX_OPAQUE_CONST_CFREF( name ) typedef const struct __##name* name##Ref;
 
-#endif
-
-#ifdef __WXMAC__
-
 #define WX_OPAQUE_TYPE( name ) struct wxOpaque##name
 
 typedef void*       WXHCURSOR;
@@ -2641,8 +2632,6 @@ typedef unsigned long   WXDWORD;
 typedef unsigned short  WXWORD;
 
 typedef WX_OPAQUE_TYPE(PicHandle ) * WXHMETAFILE ;
-
-typedef void*       WXDisplay;
 
 /*
  * core frameworks
@@ -2720,7 +2709,7 @@ typedef HIShapeRef WXHRGN;
 
 #endif // __WXMAC__
 
-#if defined(__WXMAC__)
+#ifdef __DARWIN__
 
 /* Objective-C type declarations.
  * These are to be used in public headers in lieu of NSSomething* because

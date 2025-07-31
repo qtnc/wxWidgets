@@ -19,6 +19,7 @@
 #include "wx/math.h"
 #include "wx/mimetype.h"
 #include "wx/versioninfo.h"
+#include "wx/utils.h"
 
 #include "wx/private/wordwrap.h"
 
@@ -170,6 +171,24 @@ TEST_CASE("RTTI::ClassInfo", "[rtti]")
 #endif // wxUSE_ZIPSTREAM
 }
 
+TEST_CASE("wxObjectDataPtr", "[ptr]")
+{
+    struct Foo : wxObjectRefData
+    {
+        explicit Foo(int value) : m_value{value} {}
+        int m_value;
+    };
+
+    wxObjectDataPtr<Foo> p1, p2;
+    CHECK( p1 == p2 );
+
+    p1 = new Foo(1);
+    CHECK( p1 != p2 );
+
+    p2 = new Foo(2);
+    CHECK( p1 != p2 );
+}
+
 TEST_CASE("wxCTZ", "[math]")
 {
     CHECK( wxCTZ(1) == 0 );
@@ -255,6 +274,14 @@ TEST_CASE("wxVersionInfo", "[version]")
     CHECK_FALSE( ver120.AtLeast(1, 2, 1) );
     CHECK_FALSE( ver120.AtLeast(1, 3) );
     CHECK_FALSE( ver120.AtLeast(2, 0) );
+}
+
+TEST_CASE("wxGetLibraryVersionInfo", "[libraryversion]")
+{
+    // We especially want to ensure that wxGetLibraryVersionInfo()
+    // is available in wxBase, and successfully links, too.
+    wxVersionInfo libver = wxGetLibraryVersionInfo();
+    CHECK( libver.GetNumericVersionString().starts_with("3.") );
 }
 
 TEST_CASE("wxWordWrap", "[wordwrap]")

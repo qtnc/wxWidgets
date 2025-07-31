@@ -5203,7 +5203,7 @@ wxStyledTextCtrl::DoSaveFile(const wxString& filename, int WXUNUSED(fileType))
     wxFile file(filename, wxFile::write);
 #endif
 
-    if ( file.IsOpened() && file.Write(GetValue(), *wxConvCurrent) )
+    if ( file.IsOpened() && file.Write(GetValue()) )
     {
         SetSavePoint();
 
@@ -5232,7 +5232,7 @@ wxStyledTextCtrl::DoLoadFile(const wxString& filename, int WXUNUSED(fileType))
     if ( file.IsOpened() )
     {
         wxString text;
-        if ( file.ReadAll(&text, wxConvAuto()) )
+        if ( file.ReadAll(&text) )
         {
             // Detect the EOL: we use just the first line because there is not
             // much we can do if the file uses inconsistent EOLs anyhow, we'd
@@ -5475,7 +5475,9 @@ void wxStyledTextCtrl::StartStyling(int start, int unused)
 // Event handlers
 
 void wxStyledTextCtrl::OnPaint(wxPaintEvent& WXUNUSED(evt)) {
-    wxPaintDC dc(this);
+    // This _must_ be a wxMemoryDC because the code in SurfaceImpl (see
+    // PlatWX.cpp) unconditionally casts it to wxMemoryDC currently.
+    wxBufferedPaintDC dc(this);
     m_swx->DoPaint(&dc, GetUpdateRegion().GetBox());
 }
 
@@ -6051,7 +6053,7 @@ wxStyledTextEvent::wxStyledTextEvent(const wxStyledTextEvent& event):
 
 /*static*/ wxVersionInfo wxStyledTextCtrl::GetLexerVersionInfo()
 {
-    return wxVersionInfo("Lexilla", 5, 3, 1, "Lexilla 5.3.1");
+    return wxVersionInfo("Lexilla", 5, 4, 4, "Lexilla 5.4.4");
 }
 
 

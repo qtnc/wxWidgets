@@ -1274,13 +1274,20 @@ wxDateTime& wxDateTime::Set(wxDateTime_t day,
     // Epoch and, for 32-bit time_t, before 2038 (for 64-bit time_t, the range
     // is unlimited and while we can't be sure that the standard library works
     // for the dates in the distant future, we are not going to do better
-    // ourselves neither, so let it handle them).
+    // ourselves either, so let it handle them).
     static const int yearMinInRange = 1970;
     static const int yearMaxInRange = 2037;
 
     // test only the year instead of testing for the exact end of the Unix
     // time_t range - it doesn't bring anything to do more precise checks
-    if ( year >= yearMinInRange && (sizeof(time_t) > 4 || year <= yearMaxInRange) )
+    if ( year >= yearMinInRange &&
+            ((sizeof(time_t) > 4
+#if defined(__VISUALC__) || defined(__MINGW64__)
+              // MSVC CRT (also used by MinGW) is documented not to support
+              // years > 3000, even when using 64-bit time_t.
+              && year <= 3000
+#endif // Using MSVC CRT
+             ) || year <= yearMaxInRange) )
     {
         // use the standard library version if the date is in range - this is
         // probably more efficient than our code

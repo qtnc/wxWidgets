@@ -12,7 +12,7 @@ task:
   matrix:
     - name: Cirrus CI / FreeBSD wxGTK 3
       freebsd_instance:
-        image_family: freebsd-14-0
+        image_family: freebsd-14-2
       env:
         osname: FreeBSD
     - name: Cirrus CI / Debian ARM wxGTK 3
@@ -38,7 +38,7 @@ task:
     case "${osname}" in
       Linux)
         WX_EXTRA_PACKAGES="$WX_EXTRA_PACKAGES \
-              g++ libexpat1-dev libjpeg-dev libpng-dev libtiff-dev make zlib1g-dev"
+              g++ libexpat1-dev libjpeg-dev libpng-dev libtiff-dev make zlib1g-dev libwebp-dev"
         ;;
     esac
 

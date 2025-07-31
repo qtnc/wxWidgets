@@ -50,6 +50,7 @@
 
 #include "wx/msw/private/custompaint.h"
 #include "wx/msw/private/darkmode.h"
+#include "wx/msw/private/menu.h"
 
 #include <memory>
 
@@ -106,11 +107,10 @@ DWORD (WINAPI *SetPreferredAppMode)(DWORD) = nullptr;
 
 bool InitDarkMode()
 {
-    // Note: for simplicity, we support dark mode only in Windows 10 v2004
-    // ("20H1", build number 19041) and later, even if, in principle, it could
-    // be supported as far back as v1809 (build 17763) -- but very few people
-    // must still use it by now and so it just doesn't seem to be worth it.
-    if ( !wxCheckOsVersion(10, 0, 19041) )
+    // In theory, dark mode support was added in v1809 (build 17763), so enable
+    // it for all later versions, even though in practice this code has been
+    // mostly tested under v2004 ("20H1", build number 19041) and later ones.
+    if ( !wxCheckOsVersion(10, 0, 17763) )
     {
         wxLogTrace(TRACE_DARKMODE, "Unsupported due to OS version");
         return false;
@@ -321,7 +321,7 @@ wxColour wxDarkModeSettings::GetColour(wxSystemColour index)
             return wxColour(0xe0e0e0);
 
         case wxSYS_COLOUR_HOTLIGHT:
-            return wxColour(0x474747);
+            return wxColour(0xe48435);
 
         case wxSYS_COLOUR_SCROLLBAR:
             return wxColour(0x4d4d4d);
@@ -336,11 +336,11 @@ wxColour wxDarkModeSettings::GetColour(wxSystemColour index)
         case wxSYS_COLOUR_MENUBAR:
             return wxColour(0x626262);
 
+        case wxSYS_COLOUR_HIGHLIGHT:
         case wxSYS_COLOUR_MENUHILIGHT:
-            return wxColour(0x353535);
+            return wxColour(0x9e5315);
 
         case wxSYS_COLOUR_BTNHIGHLIGHT:
-        case wxSYS_COLOUR_HIGHLIGHT:
             return wxColour(0x777777);
 
         case wxSYS_COLOUR_INACTIVECAPTIONTEXT:
@@ -414,6 +414,11 @@ void EnableForTLW(HWND hwnd)
         return;
 
     BOOL useDarkMode = TRUE;
+
+    // DWMWA_USE_IMMERSIVE_DARK_MODE is 19 for v1809, but is 20 for later
+    // versions, so to set title bar black for both v1809 and later versions,
+    // we try to call GetDwmSetWindowAttribute() with the current value first,
+    // but if it fails, we also retry with the old one.
     HRESULT hr = wxDarkModeModule::GetDwmSetWindowAttribute()
                  (
                     hwnd,
@@ -421,6 +426,16 @@ void EnableForTLW(HWND hwnd)
                     &useDarkMode,
                     sizeof(useDarkMode)
                  );
+    if ( FAILED(hr) )
+    {
+        hr = wxDarkModeModule::GetDwmSetWindowAttribute()
+             (
+                hwnd,
+                19,
+                &useDarkMode,
+                sizeof(useDarkMode)
+             );
+    }
     if ( FAILED(hr) )
         wxLogApiError("DwmSetWindowAttribute(USE_IMMERSIVE_DARK_MODE)", hr);
 
@@ -531,32 +546,7 @@ bool PaintIfNecessary(HWND hwnd, WXWNDPROC defWndProc)
 namespace wxMSWMenuImpl
 {
 
-// Definitions for undocumented messages and structs used in this code.
-constexpr int WM_MENUBAR_DRAWMENU = 0x91;
-constexpr int WM_MENUBAR_DRAWMENUITEM = 0x92;
-
-// This is passed via LPARAM of WM_MENUBAR_DRAWMENU.
-struct MenuBarDrawMenu
-{
-    HMENU hmenu;
-    HDC hdc;
-    DWORD dwReserved;
-};
-
-struct MenuBarMenuItem
-{
-    int iPosition;
-
-    // There are more fields in this (undocumented) struct but we don't
-    // currently need them, so don't bother with declaring them.
-};
-
-struct MenuBarDrawMenuItem
-{
-    DRAWITEMSTRUCT dis;
-    MenuBarDrawMenu mbdm;
-    MenuBarMenuItem mbmi;
-};
+using namespace ::wxMSWMenuImpl;
 
 wxColour GetMenuColour(wxMenuColour which)
 {

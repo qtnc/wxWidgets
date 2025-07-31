@@ -1193,7 +1193,8 @@ int wxCmdLineParser::Parse(bool showUsage, int wrapColumn)
                 {
                     if ( AreLongOptionsEnabled() )
                     {
-                        optName.Printf( _("%s (or %s)"),
+                        optName.Printf(// TRANSLATORS: Short name and long name for a command line option
+                                        _("%s (or %s)"),
                                         opt.shortName.c_str(),
                                         opt.longName.c_str() );
                     }
@@ -1615,10 +1616,10 @@ wxCmdLineParser::ConvertStringToArgs(const wxString& cmdline,
         // parse this parameter
         bool lastBS = false,
              isInsideQuotes = false;
-        wxChar chDelim = '\0';
+        wxUniChar chDelim = '\0';
         for ( arg.clear(); p != end; ++p )
         {
-            const wxChar ch = *p;
+            const wxUniChar ch = *p;
 
             if ( type == wxCMD_LINE_SPLIT_DOS )
             {

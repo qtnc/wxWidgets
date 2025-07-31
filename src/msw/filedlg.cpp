@@ -46,6 +46,7 @@
 #include "wx/msw/wrapcdlg.h"
 #include "wx/msw/private/dpiaware.h"
 #include "wx/msw/private/filedialog.h"
+#include "wx/msw/private/gethwnd.h"
 
 // Note: this must be done after including the header above, as this is where
 // wxUSE_IFILEOPENDIALOG is defined.
@@ -286,19 +287,6 @@ public:
     {
         DoUpdateState(CDCS_ENABLED, enable);
     }
-};
-
-class wxFileDialogCustomControlImplFDC
-    : public wxFileDialogImplFDC<wxFileDialogCustomControlImpl>
-{
-public:
-    // All custom controls are identified by their ID in this implementation.
-    wxFileDialogCustomControlImplFDC(IFileDialogCustomize* fdc, DWORD id)
-        : wxFileDialogImplFDC<wxFileDialogCustomControlImpl>(fdc, id)
-    {
-    }
-
-    wxDECLARE_NO_COPY_CLASS(wxFileDialogCustomControlImplFDC);
 };
 
 class wxFileDialogButtonImplFDC
@@ -1133,6 +1121,10 @@ void wxFileDialog::DoCentre(int dir)
 
 void wxFileDialog::MSWOnInitDone(WXHWND hDlg)
 {
+    // We can't position the dialog when using Qt, we'd need a working
+    // equivalent of TempHWNDSetter for it to allow us to set position of a
+    // window not created by Qt.
+#ifdef __WXMSW__
     if ( !m_data || !m_data->m_bMovedWindow )
     {
         // We only use this to position the dialog, so nothing to do.
@@ -1157,6 +1149,9 @@ void wxFileDialog::MSWOnInitDone(WXHWND hDlg)
     {
         SetPosition(gs_rectDialog.GetPosition());
     }
+#else // __WXQT__
+    wxUnusedVar(hDlg);
+#endif // __WXMSW__/__WXQT__
 }
 
 void wxFileDialog::MSWOnSelChange(const wxString& selectedFilename)
@@ -1254,7 +1249,7 @@ int wxFileDialog::ShowModal()
     WX_HOOK_MODAL_DIALOG();
 
     wxWindow* const parent = GetParentForModalDialog(m_parent, GetWindowStyle());
-    WXHWND hWndParent = parent ? GetHwndOf(parent) : nullptr;
+    const WXHWND hWndParent = wxGetHWND(parent);
 
     wxWindowDisabler disableOthers(this, parent);
 
@@ -1397,8 +1392,8 @@ int wxFileDialog::ShowCommFileDialog(WXHWND hWndParent)
     dir.reserve(len);
     for ( i = 0; i < len; i++ )
     {
-        wxChar ch = m_dir[i];
-        switch ( ch )
+        wxUniChar ch = m_dir[i];
+        switch ( ch.GetValue() )
         {
             case wxT('/'):
                 // convert to backslash
@@ -1408,7 +1403,7 @@ int wxFileDialog::ShowCommFileDialog(WXHWND hWndParent)
             case wxT('\\'):
                 while ( i < len - 1 )
                 {
-                    wxChar chNext = m_dir[i + 1];
+                    wxUniChar chNext = m_dir[i + 1];
                     if ( chNext != wxT('\\') && chNext != wxT('/') )
                         break;
 
@@ -1740,8 +1735,9 @@ int wxFileDialog::ShowIFileDialog(WXHWND hWndParent)
         }
         else // Single selected file is in m_path.
         {
-            // Append the extension if necessary.
-            m_path = AppendExtension(m_path, wildFilters[m_filterIndex]);
+            // Note that we intentionally do not call AppendExtension() here
+            // because IFileDialog already does it if necessary and doing it
+            // again would be wrong, see the discussion in #24949.
 
             const wxFileName fn(m_path);
             m_dir = fn.GetPath();

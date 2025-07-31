@@ -12,11 +12,11 @@
 
 #include "wx/defs.h"
 #include "wx/bmpbndl.h"
+#include "wx/event.h"
 #include "wx/icon.h"
 #include "wx/imaglist.h"
 #include "wx/vector.h"
-
-class WXDLLIMPEXP_FWD_CORE wxWindow;
+#include "wx/window.h"
 
 // ----------------------------------------------------------------------------
 // wxWithImages: mix-in for classes using indices for image access
@@ -49,7 +49,7 @@ public:
         if ( !m_images.empty() )
         {
             // Cast is safe, we don't risk having more than INT_MAX images.
-            return static_cast<int>(m_images.size());
+            return wxSsize(m_images);
         }
 
         return m_imageList ? m_imageList->GetImageCount() : 0;

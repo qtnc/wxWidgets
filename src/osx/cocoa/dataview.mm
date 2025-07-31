@@ -42,8 +42,6 @@
 // Constants used locally
 // ============================================================================
 
-#define DataViewPboardType @"OutlineViewItem"
-
 static const int MINIMUM_NATIVE_ROW_HEIGHT = 17;
 
 
@@ -339,7 +337,7 @@ wxDateTime ObjectToDate(NSObject *object)
 
     // get the number of seconds since 1970-01-01 UTC and this is the only
     // way to convert a double to a wxLongLong
-    const wxLongLong seconds = [((NSDate*) object) timeIntervalSince1970];
+    const wxLongLong seconds((long long)[((NSDate*) object) timeIntervalSince1970]);
 
     wxDateTime dt(1, wxDateTime::Jan, 1970);
     dt.Add(wxTimeSpan(0,0,seconds));
@@ -1988,11 +1986,12 @@ wxCocoaDataViewControl::wxCocoaDataViewControl(wxWindow* peer,
     // initialize scrollview (the outline view is part of a scrollview):
     NSScrollView* scrollview = (NSScrollView*) GetWXWidget();
 
-    [scrollview setBorderType:NSNoBorder];
     [scrollview setHasVerticalScroller:YES];
     [scrollview setHasHorizontalScroller:YES];
     [scrollview setAutohidesScrollers:YES];
     [scrollview setDocumentView:m_OutlineView];
+
+    ApplyScrollViewBorderType();
 
     // initialize the native control itself too
     InitOutlineView(style);
@@ -2177,7 +2176,7 @@ void wxCocoaDataViewControl::FitColumnWidthToContent(unsigned int pos)
         void UpdateWithRow(int row)
         {
             NSCell *cell = [m_view preparedCellAtColumn:m_column row:row];
-            unsigned cellWidth = ceil([cell cellSize].width);
+            unsigned cellWidth = unsigned(ceil([cell cellSize].width));
 
             if ( m_indent )
                 cellWidth += m_indent * [m_view levelForRow:row];
@@ -2185,7 +2184,7 @@ void wxCocoaDataViewControl::FitColumnWidthToContent(unsigned int pos)
             if ( m_expander == -1 && m_tableColumn == [m_view outlineTableColumn] )
             {
                 NSRect rc = [m_view frameOfOutlineCellAtRow:row];
-                m_expander = ceil(rc.origin.x + rc.size.width);
+                m_expander = int(ceil(rc.origin.x + rc.size.width));
             }
 
             m_width = wxMax(m_width, cellWidth);
@@ -2207,7 +2206,7 @@ void wxCocoaDataViewControl::FitColumnWidthToContent(unsigned int pos)
 
     if ( [column headerCell] )
     {
-        calculator.UpdateWithWidth(ceil([[column headerCell] cellSize].width));
+        calculator.UpdateWithWidth(int(ceil([[column headerCell] cellSize].width)));
     }
 
     // The code below deserves some explanation. For very large controls, we
@@ -3462,6 +3461,7 @@ void wxDataViewCheckIconTextRenderer::OSXOnCellChanged(NSObject *value,
             break;
 
         case 0:
+        default:
             checkedState = wxCHK_UNCHECKED;
             break;
 

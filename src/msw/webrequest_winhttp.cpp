@@ -16,6 +16,8 @@
 
 #include "wx/mstream.h"
 #include "wx/dynlib.h"
+#include "wx/uri.h"
+
 #include "wx/msw/private.h"
 #include "wx/msw/private/webrequest_winhttp.h"
 
@@ -173,11 +175,12 @@ struct wxURLComponents : URL_COMPONENTS
 
     wxWebCredentials GetCredentials() const
     {
-        return wxWebCredentials
-               (
-                wxString(lpszUserName, dwUserNameLength),
-                wxSecretValue(wxString(lpszPassword, dwPasswordLength))
-               );
+        // WinHttpCrackUrl() leaves the URL components percent-encoded, but we
+        // need the actual username and password here, so decode them ourselves.
+        wxString user(wxURI::Unescape(wxString(lpszUserName, dwUserNameLength)));
+        wxString pass(wxURI::Unescape(wxString(lpszPassword, dwPasswordLength)));
+
+        return wxWebCredentials(user, wxSecretValue(pass));
     }
 };
 
@@ -753,8 +756,7 @@ wxWebRequest::Result wxWebRequestWinHTTP::SendRequest()
           header != m_headers.end();
           ++header )
     {
-        for ( const wxString& value : header->second )
-            allHeaders.append(wxString::Format("%s: %s\n", header->first, value));
+        allHeaders.append(wxString::Format("%s: %s\n", header->first, header->second));
     }
 
     if ( m_dataSize )
@@ -996,7 +998,7 @@ bool wxWebSessionWinHTTP::Open()
 
     m_handle = wxWinHTTP::WinHttpOpen
                  (
-                    GetHeaders().find("User-Agent")->second.back().wc_str(),
+                    GetHeaders().find("User-Agent")->second.wc_str(),
                     accessType,
                     proxyName,
                     WINHTTP_NO_PROXY_BYPASS,
@@ -1121,7 +1123,7 @@ bool wxWebSessionWinHTTP::SetProxy(const wxWebProxy& proxy)
         }
 
         // Final step: WinHttpOpen() doesn't accept trailing slashes in the URL
-        // neither (it just fails with ERROR_INVALID_PARAMETER), so remove them.
+        // either (it just fails with ERROR_INVALID_PARAMETER), so remove them.
         while ( m_proxyURLWithoutCredentials.Last() == '/' )
             m_proxyURLWithoutCredentials.RemoveLast();
 

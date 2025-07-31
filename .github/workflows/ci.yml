@@ -98,44 +98,50 @@ jobs:
           - name: Ubuntu 18.04 wxGTK 3 compatible 3.0
             runner: ubuntu-latest
             container: ubuntu:18.04
-            configure_flags: --enable-compat30
+            configure_flags: --enable-compat30 --enable-pch
             use_xvfb: true
           - name: Ubuntu 20.04 wxGTK 3 with clang
-            runner: ubuntu-20.04
+            runner: ubuntu-latest
+            container: ubuntu:20.04
             compiler: clang++-10
             configure_flags: --disable-sys-libs
+            extra_warnings: -Winconsistent-missing-override
             use_xvfb: true
           - name: Ubuntu 22.04 wxGTK with wx containers
             runner: ubuntu-22.04
             configure_flags: --enable-compat30 --disable-std_containers
+            extra_warnings: -Wsuggest-override
             use_xvfb: true
-          - name: Ubuntu 22.04 wxGTK with ASAN
-            runner: ubuntu-22.04
-            configure_flags: --disable-compat32 --disable-sys-libs
+            check_headers: true
+          - name: Ubuntu 24.04 wxGTK ASAN not compatible
+            runner: ubuntu-24.04
+            configure_flags: --enable-std_string_conv_in_wxstring --disable-compat32 --disable-sys-libs
+            extra_warnings: -Wsuggest-override
             skip_samples: true
             use_asan: true
             use_xvfb: true
-          - name: Ubuntu 22.04 wxGTK with UBSAN
-            runner: ubuntu-22.04
+          - name: Ubuntu 24.04 wxGTK UBSAN
+            runner: ubuntu-24.04
             configure_flags: --with-cxx=20
+            extra_warnings: -Wsuggest-override
             use_ubsan: true
             use_xvfb: true
             build_out_of_tree_samples: true
           - name: Ubuntu 18.04 wxX11
             runner: ubuntu-latest
             container: ubuntu:18.04
-            configure_flags: --with-x11 --enable-pch --disable-stc
+            configure_flags: --with-x11 --disable-stc
             skip_samples: true
           - name: Ubuntu 18.04 wxDFB
             runner: ubuntu-latest
             container: ubuntu:18.04
-            configure_flags: --with-directfb --enable-pch --disable-stc
+            configure_flags: --with-directfb --disable-stc
             skip_samples: true
             allow_warnings: true
           - name: Ubuntu 18.04 wxQt
             runner: ubuntu-latest
             container: ubuntu:18.04
-            configure_flags: --with-qt --enable-pch --without-opengl
+            configure_flags: --with-qt --without-opengl
             skip_samples: true
             use_xvfb: true
 
@@ -164,12 +170,30 @@ jobs:
               fi
 
               compiler=${{ matrix.compiler }}
+              case "$compiler" in
+                clang++*)
+                  compiler_packages='clang libc++-dev libc++abi-dev'
+                  ;;
+
+                g++*)
+                  compiler_packages="${compiler}"
+                  ;;
+
+                '')
+                  # Assume gcc.
+                  compiler_packages='g++'
+                  ;;
+
+                *)
+                  echo '::error ::Unknown compiler kind.'
+                  exit 1
+              esac
 
               # Explanation for installing some less obvious packages:
               #   - coreutils contains nproc used in proc_count.sh called below.
               #   - xvfb is used for running the GUI tests.
               apt-get update -qq
-              apt-get install -qq coreutils ${compiler-g++} git make pkg-config sudo xvfb
+              apt-get install -qq coreutils ${compiler_packages} git make pkg-config sudo xvfb
 
               # Checkout action doesn't work under Ubuntu 18.04 any more, so
               # run checkout manually.
@@ -183,7 +207,7 @@ jobs:
               git submodule update --init --depth=1 --recursive
               git log -1 --format='%H'
 
-              # We can't easily install Go neither, so skip the tests requiring
+              # We can't easily install Go either, so skip the tests requiring
               # httpbin.
               echo WX_TEST_WEBREQUEST_URL=0 >> $GITHUB_ENV
               ;;
@@ -197,13 +221,13 @@ jobs:
           esac
 
       - name: Checkout
-        if: matrix.container == ''
+        if: matrix.container != 'ubuntu:18.04'
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
       - name: Install CCache
-        if: matrix.container == ''
+        if: matrix.container != 'ubuntu:18.04'
         uses: hendrikmuhs/ccache-action@v1.2.12
         with:
           key: ${{ matrix.name }}
@@ -227,6 +251,8 @@ jobs:
               echo LD=$compiler >> $GITHUB_ENV
 
               allow_warn_opt="-Wno-error=#warnings"
+
+              export WX_EXTRA_PACKAGES="libc++-dev"
               ;;
 
             g++*)
@@ -248,7 +274,7 @@ jobs:
 
           if [ -z ${{ matrix.allow_warnings }} ]; then
             if [ -z ${{ matrix.allow_extra_warnings }} ]; then
-              error_opts="-Wextra"
+              error_opts="-DwxENABLE_EXTRA_WARNINGS ${{ matrix.extra_warnings }}"
             fi
             error_opts="$error_opts -Werror $allow_warn_opt"
             echo "wxMAKEFILE_ERROR_CXXFLAGS=$error_opts" >> $GITHUB_ENV
@@ -265,6 +291,10 @@ jobs:
           env | sort
           echo
 
+          echo "Make version:"
+          make --version
+          echo
+
           echo "Compiler version:"
           ${CXX-g++} --version
           echo
@@ -276,11 +306,6 @@ jobs:
           echo "Free space:"
           df -h /
           echo
-
-      - name: Work around Ubuntu 22.04 runner problem
-        if: matrix.runner == 'ubuntu-22.04'
-        # See https://github.com/actions/runner-images/issues/9491#issuecomment-1989718917
-        run: sudo sysctl vm.mmap_rnd_bits=28
 
       - name: Configuring
         run: |
@@ -332,6 +357,11 @@ jobs:
       - name: Building tests
         working-directory: tests
         run: |
+          if [ ${{ matrix.check_headers }} ]; then
+            echo "Checking that all headers are self-contained..."
+            make allheaders_selfcontained
+            echo "Done."
+          fi
           make $wxBUILD_ARGS failtest
           make -k $wxBUILD_ARGS "CXXFLAGS=$wxMAKEFILE_CXXFLAGS" "LDFLAGS=$wxMAKEFILE_LDFLAGS"
 
@@ -340,7 +370,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_tests }}
 
       - name: Setup Go
-        if: matrix.container == ''
+        if: matrix.container != 'ubuntu:18.04'
         uses: actions/setup-go@v5
         with:
           go-version: '1'

@@ -235,7 +235,7 @@ wxWindowMac::~wxWindowMac()
                 wxLogLastError(wxT("UnregisterHotKey"));
             }
         }
-    }    
+    }
 #endif
 
     MacInvalidateBorders() ;
@@ -275,8 +275,8 @@ WXWidget wxWindowMac::GetHandle() const
     return nullptr;
 }
 
-wxOSXWidgetImpl* wxWindowMac::GetPeer() const 
-{ 
+wxOSXWidgetImpl* wxWindowMac::GetPeer() const
+{
     return m_peer == kOSXNoWidgetImpl ? nullptr : m_peer ;
 }
 
@@ -291,7 +291,7 @@ void wxWindowMac::DontCreatePeer()
 }
 
 void wxWindowMac::SetWrappingPeer(wxOSXWidgetImpl* wrapper)
-{ 
+{
     wxOSXWidgetImpl* inner = GetPeer();
     wxASSERT_MSG( inner != nullptr && inner->IsOk(), "missing or incomplete inner peer" );
     wxASSERT_MSG( wrapper != nullptr && wrapper->IsOk(), "missing or incomplete wrapper" );
@@ -345,8 +345,8 @@ void wxWindowMac::SetPeer(wxOSXWidgetImpl* peer)
     }
 }
 
-bool wxWindowMac::MacIsUserPane() const 
-{ 
+bool wxWindowMac::MacIsUserPane() const
+{
     return GetPeer() == nullptr || GetPeer()->IsUserPane();
 }
 
@@ -1183,7 +1183,7 @@ void wxWindowMac::DoSetClientSize(int clientwidth, int clientheight)
     }
 }
 
-double wxWindowMac::GetContentScaleFactor() const 
+double wxWindowMac::GetContentScaleFactor() const
 {
     return GetPeer()->GetContentScaleFactor();
 }
@@ -1799,10 +1799,13 @@ bool wxWindowMac::MacSetupCursor( const wxPoint& pt )
             // it - this is a way to say that our cursor shouldn't be used for this
             // point
             if ( !processedEvtSetCursor && m_cursor.IsOk() )
+            {
                 cursor = m_cursor ;
-
-            if ( !wxIsBusy() && !GetParent() )
+            }
+            else if ( !wxIsBusy() && !GetParent() )
+            {
                 cursor = *wxSTANDARD_CURSOR ;
+            }
         }
 
         if ( cursor.IsOk() )
@@ -2304,26 +2307,6 @@ long wxWindowMac::MacRemoveBordersFromStyle( long style )
     return style & ~wxBORDER_MASK ;
 }
 
-// Find the wxWindowMac at the current mouse position, returning the mouse
-// position.
-wxWindow * wxFindWindowAtPointer( wxPoint& pt )
-{
-    pt = wxGetMousePosition();
-    wxWindowMac* found = wxFindWindowAtPoint(pt);
-
-    return (wxWindow*) found;
-}
-
-// Get the current mouse position.
-wxPoint wxGetMousePosition()
-{
-    int x, y;
-
-    wxGetMousePosition( &x, &y );
-
-    return wxPoint(x, y);
-}
-
 void wxWindowMac::OnMouseEvent( wxMouseEvent &event )
 {
     if ( event.GetEventType() == wxEVT_RIGHT_DOWN )
@@ -2438,7 +2421,7 @@ wxHotKeyHandler(EventHandlerCallRef WXUNUSED(nextHandler),
 
             wxKeyEvent wxevent(wxEVT_HOTKEY);
             wxevent.SetId(hotKeyId.id);
-            wxTheApp->MacCreateKeyEvent( wxevent, s_hotkeys[i].window , keymessage , 
+            wxTheApp->MacCreateKeyEvent( wxevent, s_hotkeys[i].window , keymessage ,
                                         modifiers , when , 0 ) ;
 
             s_hotkeys[i].window->HandleWindowEvent(wxevent);
@@ -2521,7 +2504,7 @@ bool wxWindowMac::UnregisterHotKey(int hotkeyId)
 
                 return false;
             }
-            else 
+            else
                 return true;
         }
     }
@@ -2666,7 +2649,7 @@ wxIMPLEMENT_ABSTRACT_CLASS(wxWidgetImpl, wxObject);
 
 wxWidgetImpl::wxWidgetImpl( wxWindowMac* peer , int flags )
 {
-    Init();    
+    Init();
     m_isRootControl = flags & Widget_IsRoot;
     m_isUserPane = flags & Widget_IsUserPane;
     m_wantsUserKey = m_isUserPane || (flags & Widget_UserKeyEvents);

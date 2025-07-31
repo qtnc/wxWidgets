@@ -28,6 +28,7 @@
 #endif
 
 #include "wx/calctrl.h"
+#include "wx/datectrl.h"
 #include "wx/intl.h"
 #include "wx/file.h"
 #include "wx/grid.h"
@@ -36,6 +37,7 @@
 #include "wx/numformatter.h"
 #include "wx/platinfo.h"
 #include "wx/spinctrl.h"
+#include "wx/timectrl.h"
 #include "wx/translation.h"
 #include "wx/uilocale.h"
 
@@ -399,18 +401,33 @@ MyFrame::MyFrame()
 
     // create some controls affected by the locale
 
+    const int border = wxSizerFlags::GetDefaultBorder();
+    auto* const sizerInput = new wxFlexGridSizer(2, wxSize(border, border));
+    sizerInput->AddGrowableCol(1);
+
     // this demonstrates RTL layout mirroring for Arabic locales and using
     // locale-specific decimal separator in wxSpinCtrlDouble.
-    wxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
-    sizer->Add(new wxStaticText(panel, wxID_ANY, _("Numeric input:")),
-               wxSizerFlags().Center().Border());
+    sizerInput->Add(new wxStaticText(panel, wxID_ANY, _("Numeric input:")),
+                    wxSizerFlags().CenterVertical().Right());
 
     wxSpinCtrlDouble* const spin = new wxSpinCtrlDouble(panel, wxID_ANY);
     spin->SetDigits(2);
     spin->SetValue(12.34);
-    sizer->Add(spin, wxSizerFlags().Center().Border());
+    sizerInput->Add(spin, wxSizerFlags().CenterVertical().Expand());
 
-    topSizer->Add(sizer, wxSizerFlags().Center());
+    // this one demonstrates the locale-specific date format
+    sizerInput->Add(new wxStaticText(panel, wxID_ANY, _("Date input:")),
+                    wxSizerFlags().CenterVertical().Right());
+    sizerInput->Add(new wxDatePickerCtrl(panel, wxID_ANY),
+                    wxSizerFlags().CenterVertical().Expand());
+
+    // and this one does the same for time format
+    sizerInput->Add(new wxStaticText(panel, wxID_ANY, _("Time input:")),
+                    wxSizerFlags().CenterVertical().Right());
+    sizerInput->Add(new wxTimePickerCtrl(panel, wxID_ANY),
+                    wxSizerFlags().CenterVertical().Expand());
+
+    topSizer->Add(sizerInput, wxSizerFlags().Center());
 
     // show that week days and months names are translated too
     topSizer->Add(new wxCalendarCtrl(panel, wxID_ANY),
@@ -531,7 +548,9 @@ void MyFrame::OnPlay(wxCommandEvent& WXUNUSED(event))
     }
     else
     {
-        // this is a more verbose way to write _()
+        // This is a more verbose way to write _().
+        // (Note that you will need to pass -kwxGetTranslation to xgettext
+        //  for it to recognize this function.)
         str = wxGetTranslation("Bad luck! try again...");
     }
 
@@ -586,7 +605,7 @@ void MyFrame::OnSave(wxCommandEvent& WXUNUSED(event))
 
 void MyFrame::OnTest1(wxCommandEvent& WXUNUSED(event))
 {
-    const wxString& title = _("Testing _() (gettext)");
+    const wxString title = _("Testing _() (gettext)");
 
     // NOTE: using the wxTRANSLATE() macro here we won't show a localized
     //       string in the text entry dialog; we'll simply show the un-translated
@@ -609,7 +628,7 @@ void MyFrame::OnTest1(wxCommandEvent& WXUNUSED(event))
 
 void MyFrame::OnTest2(wxCommandEvent& WXUNUSED(event))
 {
-    const wxString& title = _("Testing _N() (ngettext)");
+    const wxString title = _("Testing _N() (ngettext)");
     wxTextEntryDialog d(this,
         _("Please enter range for plural forms of \"n files deleted\" phrase"),
         title, "0-10");

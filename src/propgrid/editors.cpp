@@ -197,7 +197,7 @@ void wxPGEditor::SetControlAppearance( wxPropertyGrid* pg,
 #else
             tcText = property->GetValueAsString(
 #endif // WXWIN_COMPATIBILITY_3_2 | !WXWIN_COMPATIBILITY_3_2
-                property->HasFlag(wxPGPropertyFlags::ReadOnly)?wxPGPropValFormatFlags::Null:wxPGPropValFormatFlags::EditableValue);
+                property->HasFlag(wxPGFlags::ReadOnly)?wxPGPropValFormatFlags::Null:wxPGPropValFormatFlags::EditableValue);
             changeText = true;
         }
 
@@ -285,12 +285,12 @@ wxPGWindowList wxPGTextCtrlEditor::CreateControls( wxPropertyGrid* propGrid,
 
     //
     // If has children, and limited editing is specified, then don't create.
-    if ( property->HasFlag(wxPGPropertyFlags::NoEditor) &&
+    if ( property->HasFlag(wxPGFlags::NoEditor) &&
          property->HasAnyChild() )
         return nullptr;
 
     wxPGPropValFormatFlags fmtFlags = wxPGPropValFormatFlags::Null;
-    if ( !property->HasFlag(wxPGPropertyFlags::ReadOnly) &&
+    if ( !property->HasFlag(wxPGFlags::ReadOnly) &&
          !property->IsValueUnspecified() )
         fmtFlags |= wxPGPropValFormatFlags::EditableValue;
 #if WXWIN_COMPATIBILITY_3_2
@@ -455,7 +455,7 @@ void wxPGTextCtrlEditor_OnFocus( wxPGProperty* property,
 {
     // Make sure there is correct text (instead of unspecified value
     // indicator or hint text)
-    wxPGPropValFormatFlags fmtFlags = property->HasFlag(wxPGPropertyFlags::ReadOnly) ?
+    wxPGPropValFormatFlags fmtFlags = property->HasFlag(wxPGFlags::ReadOnly) ?
         wxPGPropValFormatFlags::Null : wxPGPropValFormatFlags::EditableValue;
 #if WXWIN_COMPATIBILITY_3_2
     // Special implementation with check if user-overriden obsolete function is still in use
@@ -829,11 +829,11 @@ void wxPropertyGrid::OnComboItemPaint( const wxPGComboBox* pCb,
     {
         renderFlags |= wxPGCellRenderer::Control;
 
-        // If wxPGPropertyFlags::CustomImage was set, then that means any custom
+        // If wxPGFlags::CustomImage was set, then that means any custom
         // image will not appear on the control row (it may be too
         // large to fit, for instance). Also do not draw custom image
         // if no choice was selected.
-        if ( !p->HasFlag(wxPGPropertyFlags::CustomImage) )
+        if ( !p->HasFlag(wxPGFlags::CustomImage) )
             useCustomPaintProcedure = false;
     }
     else
@@ -971,7 +971,7 @@ wxWindow* wxPGChoiceEditor::CreateControlsBase( wxPropertyGrid* propGrid,
     // Since it is not possible (yet) to create a read-only combo box in
     // the same sense that wxTextCtrl is read-only, simply do not create
     // the control in this case.
-    if ( property->HasFlag(wxPGPropertyFlags::ReadOnly) )
+    if ( property->HasFlag(wxPGFlags::ReadOnly) )
         return nullptr;
 
     const wxPGChoices& choices = property->GetChoices();
@@ -979,7 +979,7 @@ wxWindow* wxPGChoiceEditor::CreateControlsBase( wxPropertyGrid* propGrid,
     int index = property->GetChoiceSelection();
 
     wxPGPropValFormatFlags fmtFlags = wxPGPropValFormatFlags::Null;
-    if ( !property->HasFlag(wxPGPropertyFlags::ReadOnly) &&
+    if ( !property->HasFlag(wxPGFlags::ReadOnly) &&
          !property->IsValueUnspecified() )
         fmtFlags |= wxPGPropValFormatFlags::EditableValue;
 #if WXWIN_COMPATIBILITY_3_2
@@ -1392,7 +1392,7 @@ wxPGWindowList wxPGTextCtrlAndButtonEditor::CreateControls( wxPropertyGrid* prop
 {
     wxWindow* wnd2;
     wxWindow* wnd = propGrid->GenerateEditorTextCtrlAndButton( pos, sz, &wnd2,
-        property->HasFlag(wxPGPropertyFlags::NoEditor), property);
+        property->HasFlag(wxPGFlags::NoEditor), property);
 
     return wxPGWindowList(wnd, wnd2);
 }
@@ -1621,8 +1621,6 @@ void wxSimpleCheckBox::OnPaint( wxPaintEvent& WXUNUSED(event) )
     dc.SetBrush( bgcol );
     dc.SetPen( bgcol );
 
-    dc.SetTextForeground(GetForegroundColour());
-
     wxSimpleCheckBoxStates state = m_state;
     if ( !(state & wxSimpleCheckBoxStates::Unspecified) &&
          GetFont().GetWeight() == wxFONTWEIGHT_BOLD )
@@ -1680,7 +1678,7 @@ wxPGWindowList wxPGCheckBoxEditor::CreateControls( wxPropertyGrid* propGrid,
                                                    const wxPoint& pos,
                                                    const wxSize& size ) const
 {
-    if ( property->HasFlag(wxPGPropertyFlags::ReadOnly) )
+    if ( property->HasFlag(wxPGFlags::ReadOnly) )
         return nullptr;
 
     wxPoint pt = pos;
@@ -1957,7 +1955,7 @@ wxWindow* wxPropertyGrid::GenerateEditorTextCtrl( const wxPoint& pos,
 
     int tcFlags = wxTE_PROCESS_ENTER | extraStyle;
 
-    if ( prop->HasFlag(wxPGPropertyFlags::ReadOnly) && forColumn == 1 )
+    if ( prop->HasFlag(wxPGFlags::ReadOnly) && forColumn == 1 )
         tcFlags |= wxTE_READONLY;
 
     wxPoint p(pos);
@@ -2010,7 +2008,7 @@ wxWindow* wxPropertyGrid::GenerateEditorTextCtrl( const wxPoint& pos,
     // This code is repeated from DoSelectProperty(). However, font boldness
     // must be set before margin is set up below in FixPosForTextCtrl().
     if ( forColumn == 1 &&
-         prop->HasFlag(wxPGPropertyFlags::Modified) &&
+         prop->HasFlag(wxPGFlags::Modified) &&
          HasFlag(wxPG_BOLD_MODIFIED) )
          tc->SetFont( m_captionFont );
 
@@ -2077,7 +2075,7 @@ wxWindow* wxPropertyGrid::GenerateEditorButton( const wxPoint& pos, const wxSize
     p.x = pos.x + sz.x - s.x;
     but->Move(p);
 
-    if ( selected->HasFlag(wxPGPropertyFlags::ReadOnly) && !selected->HasFlag(wxPGPropertyFlags_ActiveButton) )
+    if ( selected->HasFlag(wxPGFlags::ReadOnly) && !selected->HasFlag(wxPGPropertyFlags_ActiveButton) )
         but->Disable();
 
     return but;
@@ -2108,9 +2106,9 @@ wxWindow* wxPropertyGrid::GenerateEditorTextCtrlAndButton( const wxPoint& pos,
     if ( !property->IsValueUnspecified() )
 #if WXWIN_COMPATIBILITY_3_2
         // Special implementation with check if user-overriden obsolete function is still in use
-        text = property->GetValueAsStringWithCheck(property->HasFlag(wxPGPropertyFlags::ReadOnly)?wxPGPropValFormatFlags::Null : wxPGPropValFormatFlags::EditableValue);
+        text = property->GetValueAsStringWithCheck(property->HasFlag(wxPGFlags::ReadOnly)?wxPGPropValFormatFlags::Null : wxPGPropValFormatFlags::EditableValue);
 #else
-        text = property->GetValueAsString(property->HasFlag(wxPGPropertyFlags::ReadOnly) ? wxPGPropValFormatFlags::Null : wxPGPropValFormatFlags::EditableValue);
+        text = property->GetValueAsString(property->HasFlag(wxPGFlags::ReadOnly) ? wxPGPropValFormatFlags::Null : wxPGPropValFormatFlags::EditableValue);
 #endif // WXWIN_COMPATIBILITY_3_2 | !WXWIN_COMPATIBILITY_3_2
 
     return GenerateEditorTextCtrl(pos, sz, text, but, 0, property->GetMaxLength());
@@ -2208,11 +2206,6 @@ void wxPGMultiButton::Finalize( wxPropertyGrid* WXUNUSED(propGrid),
     Move( pos.x + m_fullEditorSize.x - m_buttonsWidth, pos.y - wxPG_BUTTON_BORDER_WIDTH, wxSIZE_ALLOW_MINUS_ONE);
 }
 
-int wxPGMultiButton::GenId( int itemid ) const
-{
-    return itemid < -1 ? wxID_ANY : itemid;
-}
-
 #if wxUSE_BMPBUTTON
 
 #if defined(__WXGTK__)
@@ -2268,7 +2261,6 @@ typedef wxBitmapButton wxPGEditorBitmapButton;
 
 void wxPGMultiButton::Add( const wxBitmapBundle& bitmap, int itemid )
 {
-    itemid = GenId(itemid);
     wxSize sz = GetSize();
 
     // Internal margins around the bitmap inside the button
@@ -2313,7 +2305,6 @@ void wxPGMultiButton::Add( const wxBitmapBundle& bitmap, int itemid )
 
 void wxPGMultiButton::Add( const wxString& label, int itemid )
 {
-    itemid = GenId(itemid);
     wxSize sz = GetSize();
     wxButton* button = new wxButton(this, itemid, label,
                     wxPoint(sz.x, 0), wxSize(wxDefaultCoord, sz.y), wxBU_EXACTFIT);

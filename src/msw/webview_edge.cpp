@@ -268,7 +268,11 @@ public:
 
         wxCOMPtr<ICoreWebView2EnvironmentOptions3> options3;
         if (SUCCEEDED(m_webViewEnvironmentOptions->QueryInterface(IID_PPV_ARGS(&options3))))
-            options3->put_IsCustomCrashReportingEnabled(false);
+        {
+            // Contrary to what could be expected, Windows doesn't send crash
+            // report to Microsoft when this setting is set to true, not false!
+            options3->put_IsCustomCrashReportingEnabled(true);
+        }
 #endif
     }
 
@@ -668,7 +672,7 @@ HRESULT wxWebViewEdgeImpl::OnNavigationCompleted(ICoreWebView2* WXUNUSED(sender)
         {
             // If we are not at the end of the list, then erase everything
             // between us and the end before adding the new page
-            if (m_historyPosition != static_cast<int>(m_historyList.size()) - 1)
+            if (m_historyPosition != wxSsize(m_historyList) - 1)
             {
                 m_historyList.erase(m_historyList.begin() + m_historyPosition + 1,
                     m_historyList.end());
@@ -1145,7 +1149,7 @@ void wxWebViewEdge::LoadHistoryItem(wxSharedPtr<wxWebViewHistoryItem> item)
         if (m_impl->m_historyList[i].get() == item.get())
             pos = i;
     }
-    wxASSERT_MSG(pos != static_cast<int>(m_impl->m_historyList.size()), "invalid history item");
+    wxASSERT_MSG(pos != wxSsize(m_impl->m_historyList), "invalid history item");
     m_impl->m_historyLoadingFromList = true;
     LoadURL(item->GetUrl());
     m_impl->m_historyPosition = pos;
@@ -1168,7 +1172,7 @@ wxVector<wxSharedPtr<wxWebViewHistoryItem> > wxWebViewEdge::GetForwardHistory()
     wxVector<wxSharedPtr<wxWebViewHistoryItem> > forwardhist;
     //As we don't have std::copy or an iterator constructor in the wxwidgets
     //native vector we construct it by hand
-    for (int i = m_impl->m_historyPosition + 1; i < static_cast<int>(m_impl->m_historyList.size()); i++)
+    for (int i = m_impl->m_historyPosition + 1; i < wxSsize(m_impl->m_historyList); i++)
     {
         forwardhist.push_back(m_impl->m_historyList[i]);
     }
@@ -1178,7 +1182,7 @@ wxVector<wxSharedPtr<wxWebViewHistoryItem> > wxWebViewEdge::GetForwardHistory()
 bool wxWebViewEdge::CanGoForward() const
 {
     if (m_impl->m_historyEnabled)
-        return m_impl->m_historyPosition != static_cast<int>(m_impl->m_historyList.size()) - 1;
+        return m_impl->m_historyPosition != wxSsize(m_impl->m_historyList) - 1;
     else
         return false;
 }
@@ -1431,7 +1435,75 @@ bool wxWebViewEdge::SetProxy(const wxString& proxy)
     return configImpl->SetProxy(proxy);
 }
 
-void* wxWebViewEdge::GetNativeBackend() const
+bool wxWebViewEdge::ClearBrowsingData(int types, wxDateTime since)
+{
+    wxCOMPtr<ICoreWebView2_13> webView13;
+    if (FAILED(m_impl->m_webView->QueryInterface(IID_PPV_ARGS(&webView13))))
+        return false;
+    wxCOMPtr<ICoreWebView2Profile> profile;
+    if (FAILED(webView13->get_Profile(&profile)))
+        return false;
+    wxCOMPtr<ICoreWebView2Profile2> profile2;
+    if (FAILED(profile->QueryInterface(IID_PPV_ARGS(&profile2))))
+        return false;
+
+    int dataKinds = 0;
+    if (types & wxWEBVIEW_BROWSING_DATA_ALL)
+    {
+        dataKinds = COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_PROFILE;
+    }
+    else
+    {
+        if (types & wxWEBVIEW_BROWSING_DATA_CACHE)
+            dataKinds |= COREWEBVIEW2_BROWSING_DATA_KINDS_DISK_CACHE;
+
+        // This makes the code a bit more complicated, but prefer to use "ALL
+        // SITE" if we want to delete both cookies and DOM storage because this
+        // will include any other kind of data that may be added in the future.
+        switch ( types & (wxWEBVIEW_BROWSING_DATA_COOKIES |
+                          wxWEBVIEW_BROWSING_DATA_DOM_STORAGE) )
+        {
+            case wxWEBVIEW_BROWSING_DATA_COOKIES:
+                dataKinds |= COREWEBVIEW2_BROWSING_DATA_KINDS_COOKIES;
+                break;
+
+            case wxWEBVIEW_BROWSING_DATA_DOM_STORAGE:
+                dataKinds |= COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_DOM_STORAGE;
+
+            case wxWEBVIEW_BROWSING_DATA_COOKIES | wxWEBVIEW_BROWSING_DATA_DOM_STORAGE:
+                dataKinds |= COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_SITE;
+                break;
+        }
+
+        if (types & wxWEBVIEW_BROWSING_DATA_OTHER)
+        {
+            // All the other kinds not already mentioned above.
+            dataKinds |= COREWEBVIEW2_BROWSING_DATA_KINDS_BROWSING_HISTORY |
+                         COREWEBVIEW2_BROWSING_DATA_KINDS_SETTINGS |
+                         COREWEBVIEW2_BROWSING_DATA_KINDS_DOWNLOAD_HISTORY |
+                         COREWEBVIEW2_BROWSING_DATA_KINDS_GENERAL_AUTOFILL |
+                         COREWEBVIEW2_BROWSING_DATA_KINDS_PASSWORD_AUTOSAVE;
+        }
+    }
+
+    profile2->ClearBrowsingDataInTimeRange(
+        (COREWEBVIEW2_BROWSING_DATA_KINDS) dataKinds,
+        (double) (since.IsValid() ? since.GetTicks() : 0),
+        (double) wxDateTime::Now().GetTicks(),
+        Callback<ICoreWebView2ClearBrowsingDataCompletedHandler>(
+            [this](HRESULT error) -> HRESULT
+        {
+            wxWebViewEvent event(wxEVT_WEBVIEW_BROWSING_DATA_CLEARED, GetId(), wxString(), wxString());
+            event.SetInt(SUCCEEDED(error) ? 1 : 0);
+            event.SetEventObject(this);
+            AddPendingEvent(event);
+            return S_OK;
+        }).Get());
+
+    return true;
+}
+
+void *wxWebViewEdge::GetNativeBackend() const
 {
     return m_impl->m_webView;
 }

@@ -159,6 +159,35 @@ void wxCURLSetOpt(CURL* handle, CURLoption option, const wxString& value)
     wxCURLSetOpt(handle, option, value.utf8_str().data());
 }
 
+// Define wrapper function for initializing CURL handles.
+CURL* wxCURLEasyInit()
+{
+    CURL* handle = curl_easy_init();
+    if ( !handle )
+    {
+        wxLogDebug("curl_easy_init() failed");
+        return nullptr;
+    }
+
+    // Honour the same environment variables that curl tool itself uses for
+    // customizing the certificates locations.
+    wxString path;
+    if ( wxGetEnv("CURL_CA_BUNDLE", &path) )
+    {
+        wxCURLSetOpt(handle, CURLOPT_CAINFO, path);
+    }
+    else // CURL_CA_BUNDLE overrides SSL_CERT_XXX
+    {
+        if ( wxGetEnv("SSL_CERT_DIR", &path) )
+            wxCURLSetOpt(handle, CURLOPT_CAPATH, path);
+
+        if ( wxGetEnv("SSL_CERT_FILE", &path) )
+            wxCURLSetOpt(handle, CURLOPT_CAINFO, path);
+    }
+
+    return handle;
+}
+
 } // anonymous namespace
 
 wxWebResponseCURL::wxWebResponseCURL(wxWebRequestCURL& request) :
@@ -269,8 +298,8 @@ wxString wxWebResponseCURL::GetURL() const
 
 wxString wxWebResponseCURL::GetHeader(const wxString& name) const
 {
-    wxWebRequestHeaderMap::const_iterator it = m_headers.find(name.Upper());
-    if ( it != m_headers.end() && !it->second.empty() )
+    const auto it = m_headers.find(name.Upper());
+    if ( it != m_headers.end() )
         return it->second.back();
 
     return wxString();
@@ -278,13 +307,11 @@ wxString wxWebResponseCURL::GetHeader(const wxString& name) const
 
 std::vector<wxString> wxWebResponseCURL::GetAllHeaderValues(const wxString& name) const
 {
-    std::vector<wxString> result;
-
-    wxWebRequestHeaderMap::const_iterator it = m_headers.find(name.Upper());
+    const auto it = m_headers.find(name.Upper());
     if ( it != m_headers.end() )
-        result = it->second;
+        return it->second;
 
-    return result;
+    return {};
 }
 
 int wxWebResponseCURL::GetStatus() const
@@ -312,7 +339,7 @@ wxWebRequestCURL::wxWebRequestCURL(wxWebSession & session,
                                    int id):
     wxWebRequestImpl(session, sessionImpl, handler, id),
     m_sessionCURL(&sessionImpl),
-    m_handle(curl_easy_init())
+    m_handle(wxCURLEasyInit())
 {
 
     DoStartPrepare(url);
@@ -456,13 +483,10 @@ wxWebRequest::Result wxWebRequestCURL::DoFinishPrepare()
     for ( wxWebRequestHeaderMap::const_iterator it = m_headers.begin();
         it != m_headers.end(); ++it )
     {
-        for ( const wxString& value : it->second )
-        {
-            // TODO: We need to implement RFC 2047 encoding here instead of blindly
-            //       sending UTF-8 which is against the standard.
-            wxString hdrStr = wxString::Format("%s: %s", it->first, value);
-            m_headerList = curl_slist_append(m_headerList, hdrStr.utf8_str());
-        }
+        // TODO: We need to implement RFC 2047 encoding here instead of blindly
+        //       sending UTF-8 which is against the standard.
+        wxString hdrStr = wxString::Format("%s: %s", it->first, it->second);
+        m_headerList = curl_slist_append(m_headerList, hdrStr.utf8_str());
     }
     wxCURLSetOpt(m_handle, CURLOPT_HTTPHEADER, m_headerList);
 
@@ -763,7 +787,7 @@ LRESULT CALLBACK WinSock1SocketPoller::MsgProc(WXHWND hwnd, WXUINT uMsg,
 
     if ( uMsg == SOCKET_MESSAGE )
     {
-        // Extract the result any any errors from lParam.
+        // Extract the result and any errors from lParam.
         int winResult = LOWORD(lParam);
         int error = HIWORD(lParam);
 
@@ -822,7 +846,9 @@ using SocketPollerBase = WinSock1SocketPoller;
 
 #else
 
+#if wxUSE_LOG_TRACE
 constexpr const char* TRACE_CURL = "curl";
+#endif
 
 // SocketPollerSourceHandler - a source handler used by the SocketPoller class.
 
@@ -1031,9 +1057,9 @@ void SourceSocketPoller::SendEvent(curl_socket_t sock, int result)
     {
         // Check if we have any sockets to clean up and do it now, it should be
         // safe.
-        for ( auto sock : m_socketsToCleanUp )
+        for ( auto sck : m_socketsToCleanUp )
         {
-            StopPolling(sock);
+            StopPolling(sck);
         }
 
         m_socketsToCleanUp.clear();
@@ -1119,7 +1145,7 @@ wxWebSessionSyncCURL::CreateRequestSync(wxWebSessionSync& WXUNUSED(session),
     if ( !m_handle )
     {
         // Allocate it the first time we need it and keep it later.
-        m_handle = curl_easy_init();
+        m_handle = wxCURLEasyInit();
     }
     else
     {

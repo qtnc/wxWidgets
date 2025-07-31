@@ -298,6 +298,7 @@ corresponding library. The following symbols are honoured:
     - wxNO_JPEG_LIB
     - wxNO_PNG_LIB
     - wxNO_TIFF_LIB
+    - wxNO_WEBP_LIB
     - wxNO_ZLIB_LIB
 
 Notice that the base library is always included and the core is always included
@@ -405,8 +406,19 @@ more details.
 @itemdef{wxNO_IMPLICIT_WXSTRING_ENCODING,
         this symbol is not defined by wxWidgets itself, but can be defined by
         the applications using the library to disable implicit
-        conversions from and to <tt>const char*</tt> in wxString class.
-        Support for this option appeared in wxWidgets 3.1.4.}
+        conversions from and to <tt>const char*</tt> without specifying its
+        encoding in wxString class. Note that this option is incompatible with
+        @c wxUSE_UTF8_LOCALE_ONLY, as all strings are implicitly assumed to use
+        UTF-8 then. Support for this option appeared in wxWidgets 3.1.4.}
+@itemdef{wxNO_REQUIRE_LITERAL_MSGIDS,
+        this symbol is not defined by wxWidgets itself, but can be defined by
+        the applications using the library to allow variables as string arguments to
+        translation macros such as _() and wxPLURAL. The default since wxWidgets
+        3.3.0 is to allow only string literals.
+        Note that passing string variables as arguments to translation macros is
+        likely to be a bug, and does not produce the expected results. If you
+        feel you need to define this macro, you should first consider whether
+        your code is doing the right thing.}
 @itemdef{WXMAKINGDLL_XXX,
         used internally and defined when building the
         library @c XXX as a DLL; when a monolithic wxWidgets build is used only a
@@ -418,6 +430,12 @@ more details.
 @itemdef{wxICON_IS_BITMAP,
          defined in the ports where wxIcon inherits from wxBitmap (all but
          wxMSW currently)}
+@itemdef{wxENABLE_EXTRA_WARNINGS,
+         this symbol can be predefined before including wxWidgets headers to
+         enable extra compilers warnings. This is mostly useful for wxWidgets
+         developers, but can also be used by the applications if they want to
+         opt in into getting more help from compiler. Support for this symbol
+         appeared in wxWidgets 3.3.0.}
 @endDefList
 
 */

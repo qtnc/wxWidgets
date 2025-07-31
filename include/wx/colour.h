@@ -127,6 +127,15 @@ public:
     virtual bool IsSolid() const
         { return true; }
 
+    bool IsTransparent() const
+        { return GetAlpha() == wxALPHA_TRANSPARENT; }
+
+    bool IsOpaque() const
+        { return GetAlpha() == wxALPHA_OPAQUE; }
+
+    bool IsTranslucent() const
+        { return GetAlpha() > wxALPHA_TRANSPARENT && GetAlpha() < wxALPHA_OPAQUE; }
+
     // implemented in colourcmn.cpp
     virtual wxString GetAsString(long flags = wxC2S_NAME | wxC2S_CSS_SYNTAX) const;
 
@@ -203,7 +212,7 @@ protected:
         return nullptr;
     }
 
-    virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *WXUNUSED(data)) const override
+    wxNODISCARD virtual wxGDIRefData *CloneGDIRefData(const wxGDIRefData *WXUNUSED(data)) const override
     {
         wxFAIL_MSG( "must be overridden if used" );
 

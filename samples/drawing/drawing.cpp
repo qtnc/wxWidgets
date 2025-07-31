@@ -127,6 +127,7 @@ public:
     void OnMouseDown(wxMouseEvent &event);
     void OnMouseUp(wxMouseEvent &event);
     void OnMouseCaptureLost(wxMouseCaptureLostEvent &event);
+    void OnSetCursor(wxSetCursorEvent &event);
 
     void ToShow(int show) { m_show = show; Refresh(); }
     int GetPage() { return m_show; }
@@ -176,6 +177,7 @@ protected:
     void DrawGradients(wxDC& dc);
     void DrawSystemColours(wxDC& dc);
     void DrawDatabaseColours(wxDC& dc);
+    void DrawCursors(wxDC& dc);
     void DrawColour(wxDC& dc, const wxFont& mono, wxCoord x, const wxRect& r, const wxString& colourName, const wxColour& col);
 
     void DrawRegionsHelper(wxDC& dc, wxCoord x, bool firstTime);
@@ -202,6 +204,14 @@ private:
     bool         m_useBuffer;
     bool         m_showBBox;
     wxSize       m_sizeDIP;
+
+    // A custom cursor used for demonstrating using it on the cursors page.
+    wxCursorBundle m_customCursor;
+
+    // Filled by DrawCursors() with the rectangle demonstrating wxStockCursor
+    // value equal to the index in this vector except for the index 0 which is
+    // used to show m_customCursor.
+    std::vector<wxRect> m_cursorRects;
 
     wxDECLARE_EVENT_TABLE();
 };
@@ -331,6 +341,7 @@ enum
 #endif
     File_ShowSystemColours,
     File_ShowDatabaseColours,
+    File_ShowCursors,
     File_ShowGradients,
     MenuShow_Last = File_ShowGradients,
 
@@ -390,6 +401,9 @@ enum
     Colour_AppearanceSystem,
     Colour_AppearanceLight,
     Colour_AppearanceDark,
+
+    Colour_DatabaseCSS,
+    Colour_DatabaseTraditional,
 
 #if wxUSE_COLOURDLG
     Colour_TextForeground,
@@ -597,9 +611,13 @@ wxBEGIN_EVENT_TABLE(MyCanvas, wxScrolledWindow)
     EVT_LEFT_DOWN (MyCanvas::OnMouseDown)
     EVT_LEFT_UP (MyCanvas::OnMouseUp)
     EVT_MOUSE_CAPTURE_LOST (MyCanvas::OnMouseCaptureLost)
+    EVT_SET_CURSOR(MyCanvas::OnSetCursor)
 wxEND_EVENT_TABLE()
 
 #include "smile.xpm"
+
+#include "cursor.xpm"
+#include "cursor_2x.xpm"
 
 MyCanvas::MyCanvas(MyFrame *parent)
         : wxScrolledWindow(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -619,10 +637,22 @@ MyCanvas::MyCanvas(MyFrame *parent)
     m_showBBox = false;
     m_sizeDIP = wxSize(0, 0);
 
+    auto cursorBitmaps = wxBitmapBundle::FromBitmaps(wxBitmap(cursor_xpm),
+                                                     wxBitmap(cursor_2x_xpm));
+    m_customCursor = wxCursorBundle(cursorBitmaps, wxPoint(4, 4));
+
     Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
         event.Skip();
 
         if ( m_show == File_ShowSystemColours )
+            Refresh();
+    });
+
+    Bind(wxEVT_SYS_METRIC_CHANGED, [this](wxSysMetricChangedEvent& event) {
+        event.Skip();
+
+        if ( m_show == File_ShowCursors &&
+                event.GetMetric() == wxSysMetric::CursorSize )
             Refresh();
     });
 }
@@ -1793,7 +1823,7 @@ void MyCanvas::DrawSystemColours(wxDC& dc)
     {
         dc.DrawText(wxString::Format("%s: %s", what, dark ? "dark" : "light"),
                     x, r.y);
-        r.y += 1.5*lineHeight;
+        r.y += lineHeight * 3 / 2;
     };
 
     showDarkOrLight("System", appearance.IsSystemDark());
@@ -1870,11 +1900,116 @@ void MyCanvas::DrawDatabaseColours(wxDC& dc)
     dc.DrawText(title, x, r.y);
     r.y += 3*lineHeight;
 
-    const wxVector<wxString> names(wxTheColourDatabase->GetAllNames());
-    for (wxVector<wxString>::const_iterator p = names.begin(); p != names.end(); ++p)
+    wxVector<wxString> names(wxTheColourDatabase->GetAllNames());
+    std::sort(names.begin(), names.end());
+
+    for ( const auto& name : names )
     {
-        DrawColour(dc, mono, x, r, *p, wxTheColourDatabase->Find(*p));
+        DrawColour(dc, mono, x, r, name, wxTheColourDatabase->Find(name));
         r.y += lineHeight;
+    }
+}
+
+void MyCanvas::OnSetCursor(wxSetCursorEvent& event)
+{
+    // Only show cursors on the cursors screen.
+    if ( m_show != File_ShowCursors )
+    {
+        event.Skip();
+        return;
+    }
+
+    const wxPoint pos = event.GetPosition();
+    for ( int n = 0; n < wxSsize(m_cursorRects); ++n )
+    {
+        if ( m_cursorRects[n].Contains(pos) )
+        {
+            // First index is special, it corresponds to the custom cursor.
+            event.SetCursor(n == 0 ? m_customCursor.GetCursorFor(this)
+                                   : wxCursor(static_cast<wxStockCursor>(n)));
+            return;
+        }
+    }
+
+    event.Skip();
+}
+
+void MyCanvas::DrawCursors(wxDC& dc)
+{
+    static constexpr const char* stockNames[] =
+    {
+        "NONE", // not used, just to keep names and wxStockCursor IDs in sync
+        "ARROW",
+        "RIGHT_ARROW",
+        "BULLSEYE",
+        "CHAR",
+        "CROSS",
+        "HAND",
+        "IBEAM",
+        "LEFT_BUTTON",
+        "MAGNIFIER",
+        "MIDDLE_BUTTON",
+        "NO_ENTRY",
+        "PAINT_BRUSH",
+        "PENCIL",
+        "POINT_LEFT",
+        "POINT_RIGHT",
+        "QUESTION_ARROW",
+        "RIGHT_BUTTON",
+        "SIZENESW",
+        "SIZENS",
+        "SIZENWSE",
+        "SIZEWE",
+        "SIZING",
+        "SPRAYCAN",
+        "WAIT",
+        "WATCH",
+        "BLANK",
+    };
+    constexpr int stockNamesCount = WXSIZEOF(stockNames);
+    m_cursorRects.resize(stockNamesCount);
+
+    wxCoord x(FromDIP(10));
+    wxCoord y = x;
+
+    dc.SetBackgroundMode(wxTRANSPARENT);
+    dc.DrawText(wxString::Format("System cursor size: %dx%d",
+                                 wxSystemSettings::GetMetric(wxSYS_CURSOR_X, this),
+                                 wxSystemSettings::GetMetric(wxSYS_CURSOR_Y, this)),
+                x, y);
+
+    const int w = FromDIP(200);
+    const int h = wxSystemSettings::GetMetric(wxSYS_CURSOR_Y, this);
+    const int margin = dc.GetCharWidth();
+
+    y += h;
+    wxRect r(x, y, 2*w + margin, h);
+    m_cursorRects[0] = r;
+    dc.DrawRectangle(r);
+
+    r.x += margin;
+    dc.DrawLabel("Hover over this rectangle to see the custom cursor", r,
+                 wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+
+    y += h + margin;
+    dc.DrawText("Hover over a rectangle to see the corresponding stock cursor",
+                x, y);
+
+    y += h;
+
+    for ( int n = 1; n < stockNamesCount; ++n )
+    {
+        r = wxRect(x, y, w, h);
+        if ( n % 2 )
+            r.x += w + margin;
+        else
+            y += h + margin;
+
+        m_cursorRects[n] = r;
+        dc.DrawRectangle(r);
+
+        r.x += margin;
+        dc.DrawLabel(stockNames[n], r, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
     }
 }
 
@@ -2106,6 +2241,10 @@ void MyCanvas::Draw(wxDC& pdc)
 
         case File_ShowDatabaseColours:
             DrawDatabaseColours(dc);
+            break;
+
+        case File_ShowCursors:
+            DrawCursors(dc);
             break;
 
         default:
@@ -2406,6 +2545,7 @@ MyFrame::MyFrame(const wxString& title)
 #endif
     menuScreen->Append(File_ShowSystemColours, "System &colours");
     menuScreen->Append(File_ShowDatabaseColours, "Databa&se colours");
+    menuScreen->Append(File_ShowCursors, "C&ursors screen");
 
     wxMenu *menuFile = new wxMenu;
 #if wxUSE_GRAPHICS_CONTEXT
@@ -2506,6 +2646,9 @@ MyFrame::MyFrame(const wxString& title)
     menuColour->AppendRadioItem(Colour_AppearanceLight, "Use &light appearance");
     menuColour->AppendRadioItem(Colour_AppearanceDark, "Use &dark appearance");
     menuColour->AppendSeparator();
+    menuColour->AppendRadioItem(Colour_DatabaseCSS, "&Use CSS colours");
+    menuColour->AppendRadioItem(Colour_DatabaseTraditional, "Use &traditional colours");
+    menuColour->AppendSeparator();
 #if wxUSE_COLOURDLG
     menuColour->Append( Colour_TextForeground, "Text &foreground..." );
     menuColour->Append( Colour_TextBackground, "Text &background..." );
@@ -2557,7 +2700,7 @@ MyFrame::MyFrame(const wxString& title)
     m_textureBackground = false;
 
     m_canvas = new MyCanvas( this );
-    m_canvas->SetScrollbars( 10, 10, 100, 240 );
+    m_canvas->SetScrollbars( 10, 10, 100, 450 );
 
     SetSize(FromDIP(wxSize(800, 700)));
     Center(wxBOTH);
@@ -2831,6 +2974,14 @@ void MyFrame::OnOption(wxCommandEvent& event)
         case Colour_AppearanceDark:
             if ( wxGetApp().DoSetAppearance(event.GetId()) )
                 Refresh();
+            break;
+
+        case Colour_DatabaseCSS:
+        case Colour_DatabaseTraditional:
+            wxTheColourDatabase->UseScheme(event.GetId() == Colour_DatabaseCSS
+                                                ? wxColourDatabase::CSS
+                                                : wxColourDatabase::Traditional);
+            Refresh();
             break;
 
 #if wxUSE_COLOURDLG

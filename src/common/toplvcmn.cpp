@@ -312,6 +312,24 @@ void wxTopLevelWindowBase::DoCentre(int dir)
 }
 
 // ----------------------------------------------------------------------------
+// Default item management
+// ----------------------------------------------------------------------------
+
+wxWindow* wxTopLevelWindowBase::SetDefaultItem(wxWindow* win)
+{
+    wxWindow* const old = GetDefaultItem();
+    m_winDefault = win;
+    return old;
+}
+
+wxWindow* wxTopLevelWindowBase::SetTmpDefaultItem(wxWindow* win)
+{
+    wxWindow* const old = GetDefaultItem();
+    m_winTmpDefault = win;
+    return old;
+}
+
+// ----------------------------------------------------------------------------
 // Saving/restoring geometry
 // ----------------------------------------------------------------------------
 
@@ -485,6 +503,20 @@ bool wxTopLevelWindowBase::Layout()
     }
 
     return false;
+}
+
+void wxTopLevelWindowBase::Fit()
+{
+    if ( !UsesAutoLayout() )
+    {
+        if ( wxWindow* const child = GetUniqueChild() )
+        {
+            SetClientSize(child->GetBestSize());
+            return;
+        }
+    }
+
+    return wxNonOwnedWindow::Fit();
 }
 
 wxSize wxTopLevelWindowBase::DoGetBestClientSize() const

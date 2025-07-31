@@ -110,48 +110,6 @@ public:
     ~wxWindowDisabler();
 };
 
-
-
-/**
-    @class wxBusyCursor
-
-    This class makes it easy to tell your user that the program is temporarily
-    busy. Just create a wxBusyCursor object on the stack, and within the
-    current scope, the hourglass will be shown.
-
-    For example:
-
-    @code
-    wxBusyCursor wait;
-
-    for (int i = 0; i < 100000; i++)
-        DoACalculation();
-    @endcode
-
-    It works by calling wxBeginBusyCursor() in the constructor, and
-    wxEndBusyCursor() in the destructor.
-
-    @library{wxcore}
-    @category{misc}
-
-    @see wxBeginBusyCursor(), wxEndBusyCursor(), wxWindowDisabler, wxBusyInfo
-*/
-class wxBusyCursor
-{
-public:
-    /**
-        Constructs a busy cursor object, calling wxBeginBusyCursor().
-    */
-    wxBusyCursor(const wxCursor* cursor = wxHOURGLASS_CURSOR);
-
-    /**
-        Destroys the busy cursor object, calling wxEndBusyCursor().
-    */
-    ~wxBusyCursor();
-};
-
-
-
 // ============================================================================
 // Global functions/macros
 // ============================================================================
@@ -159,38 +117,6 @@ public:
 
 /** @addtogroup group_funcmacro_dialog */
 ///@{
-
-/**
-    Changes the cursor to the given cursor for all windows in the application.
-    Use wxEndBusyCursor() to revert the cursor back to its previous state.
-    These two calls can be nested, and a counter ensures that only the outer
-    calls take effect.
-
-    @see wxIsBusy(), wxBusyCursor
-
-    @header{wx/utils.h}
-*/
-void wxBeginBusyCursor(const wxCursor* cursor = wxHOURGLASS_CURSOR);
-
-/**
-    Changes the cursor back to the original cursor, for all windows in the
-    application. Use with wxBeginBusyCursor().
-
-    @see wxIsBusy(), wxBusyCursor
-
-    @header{wx/utils.h}
-*/
-void wxEndBusyCursor();
-
-/**
-    Returns @true if between two wxBeginBusyCursor() and wxEndBusyCursor()
-    calls.
-
-    @see wxBusyCursor.
-
-    @header{wx/utils.h}
-*/
-bool wxIsBusy();
 
 /**
     Ring the system bell.
@@ -232,7 +158,7 @@ void wxInfoMessageBox(wxWindow* parent);
 
     @header{wx/utils.h}
 
-    @library{wxcore}
+    @library{wxbase}
 */
 wxVersionInfo wxGetLibraryVersionInfo();
 
@@ -256,15 +182,19 @@ wxVersionInfo wxGetLibraryVersionInfo();
 using wxEnvVariableHashMap = std::unordered_map<wxString, wxString>;
 
 /**
-    This is a macro defined as @c getenv() or its wide char version in Unicode
-    mode.
+    Wrapper of the standard @c getenv() or its wide char version.
 
-    Note that under Win32 it may not return correct value for the variables set
-    with wxSetEnv(), use wxGetEnv() function instead.
+    Note that under Win32 the overload using `char*` does not work for
+    variables using non-ASCII characters, use either the overload taking
+    `wchar_t*` or, preferably, wxGetEnv() instead.
+
+    Under other platforms, `char*` overload always uses UTF-8 encoding.
 
     @header{wx/utils.h}
 */
-wxChar* wxGetenv(const wxString& var);
+char* wxGetenv(const char* s);
+wchar_t* wxGetenv(const wchar_t* ws);
+char* wxGetenv(const wxString& s);
 
 /**
     Returns the current value of the environment variable @a var in @a value.
@@ -952,6 +882,12 @@ wxString wxGetOsDescription();
             <th>Build number</th>
         </tr>
         <tr>
+            <td>Windows Server 2025</td>
+            <td>10</td>
+            <td>0</td>
+            <td>26100</td>
+        </tr>
+        <tr>
             <td>Windows 11</td>
             <td>10</td>
             <td>0</td>
@@ -1604,18 +1540,6 @@ wxString wxNow();
     @header{wx/utils.h}
 */
 void wxSleep(int secs);
-
-/**
-    @deprecated This function is deprecated because its name is misleading:
-                notice that the argument is in milliseconds, not microseconds.
-                Please use either wxMilliSleep() or wxMicroSleep() depending on
-                the resolution you need.
-
-    Sleeps for the specified number of milliseconds.
-
-    @header{wx/utils.h}
-*/
-void wxUsleep(unsigned long milliseconds);
 
 ///@}
 

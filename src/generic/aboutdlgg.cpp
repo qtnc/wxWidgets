@@ -98,7 +98,7 @@ wxString wxAboutDialogInfo::GetCopyrightToDisplay() const
 {
     wxString ret = m_copyright;
 
-    const wxString copyrightSign = wxString::FromUTF8("\xc2\xa9");
+    const wxString copyrightSign = wxString::FromUTF8("©");
     ret.Replace("(c)", copyrightSign);
     ret.Replace("(C)", copyrightSign);
 
@@ -142,7 +142,8 @@ void wxAboutDialogInfo::SetVersion(const wxString& version,
 
 bool wxGenericAboutDialog::Create(const wxAboutDialogInfo& info, wxWindow* parent)
 {
-    if ( !wxDialog::Create(parent, wxID_ANY, wxString::Format(_("About %s"), info.GetName()),
+    if ( !wxDialog::Create(parent, wxID_ANY, wxString::Format(// TRANSLATORS: %s is application name
+                                                              _("About %s"), info.GetName()),
                            wxDefaultPosition, wxDefaultSize, wxRESIZE_BORDER|wxDEFAULT_DIALOG_STYLE) )
         return false;
 
@@ -249,6 +250,7 @@ bool wxGenericAboutDialog::Create(const wxAboutDialogInfo& info, wxWindow* paren
         wxWindow* const separator = new wxWindow(this, wxID_ANY);
         separator->SetInitialSize(wxSize(1, 1));
         separator->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_3DLIGHT));
+        separator->Disable(); // Make it inactive for screen readers.
         sizerTop->Add(separator, wxSizerFlags().Expand());
 
         sizerTop->Add(sizerBtns, wxSizerFlags().Expand().DoubleBorder());

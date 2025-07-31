@@ -25,6 +25,7 @@
 #include "wx/aui/floatpane.h"
 #include "wx/aui/tabmdi.h"
 #include "wx/aui/auibar.h"
+#include "wx/aui/auibook.h"
 #include "wx/aui/serializer.h"
 #include "wx/mdi.h"
 #include "wx/wupdlock.h"
@@ -52,13 +53,6 @@ wxDEFINE_EVENT( wxEVT_AUI_PANE_ACTIVATED, wxAuiManagerEvent );
 wxDEFINE_EVENT( wxEVT_AUI_RENDER, wxAuiManagerEvent );
 wxDEFINE_EVENT( wxEVT_AUI_FIND_MANAGER, wxAuiManagerEvent );
 
-#ifdef __WXMAC__
-    // a few defines to avoid nameclashes
-    #define __MAC_OS_X_MEMORY_MANAGER_CLEAN__ 1
-    #define __AIFF__
-    #include "wx/osx/private.h"
-#endif
-
 #ifdef __WXMSW__
     #include "wx/msw/wrapwin.h"
     #include "wx/msw/private.h"
@@ -69,18 +63,23 @@ wxDEFINE_EVENT( wxEVT_AUI_FIND_MANAGER, wxAuiManagerEvent );
 
 #include "wx/generic/private/drawresize.h"
 
+#include <map>
 #include <memory>
 
 wxIMPLEMENT_DYNAMIC_CLASS(wxAuiManagerEvent, wxEvent);
 wxIMPLEMENT_CLASS(wxAuiManager, wxEvtHandler);
 
 
-
-const int auiToolBarLayer = 10;
-
-// -- static utility functions --
+// -- local constants and helper functions --
 namespace
 {
+
+// Index of the outermost layer used for all toolbars.
+constexpr int auiToolBarLayer = 10;
+
+// Default proportion which is "infinitely" greater than anything else.
+constexpr int maxDockProportion = 100000;
+
 
 wxBitmap wxCreateVenetianBlindsBitmap(wxByte r, wxByte g, wxByte b, wxByte a)
 {
@@ -398,25 +397,6 @@ bool wxAuiPaneInfo::IsValid() const
 // -- wxAuiManager class implementation --
 
 
-wxBEGIN_EVENT_TABLE(wxAuiManager, wxEvtHandler)
-    EVT_AUI_PANE_BUTTON(wxAuiManager::OnPaneButton)
-    EVT_AUI_RENDER(wxAuiManager::OnRender)
-    EVT_WINDOW_DESTROY(wxAuiManager::OnDestroy)
-    EVT_PAINT(wxAuiManager::OnPaint)
-    EVT_ERASE_BACKGROUND(wxAuiManager::OnEraseBackground)
-    EVT_SIZE(wxAuiManager::OnSize)
-    EVT_SET_CURSOR(wxAuiManager::OnSetCursor)
-    EVT_LEFT_DOWN(wxAuiManager::OnLeftDown)
-    EVT_LEFT_UP(wxAuiManager::OnLeftUp)
-    EVT_MOTION(wxAuiManager::OnMotion)
-    EVT_LEAVE_WINDOW(wxAuiManager::OnLeaveWindow)
-    EVT_MOUSE_CAPTURE_LOST(wxAuiManager::OnCaptureLost)
-    EVT_CHILD_FOCUS(wxAuiManager::OnChildFocus)
-    EVT_AUI_FIND_MANAGER(wxAuiManager::OnFindManager)
-    EVT_SYS_COLOUR_CHANGED(wxAuiManager::OnSysColourChanged)
-wxEND_EVENT_TABLE()
-
-
 wxAuiManager::wxAuiManager(wxWindow* managed_wnd, unsigned int flags)
 {
     m_action = actionNone;
@@ -428,7 +408,7 @@ wxAuiManager::wxAuiManager(wxWindow* managed_wnd, unsigned int flags)
     m_frame = nullptr;
     m_dockConstraintX = 0.3;
     m_dockConstraintY = 0.3;
-    m_hintFadeMax = 128;
+    m_hintFadeMax = 64;
 
     m_reserved = nullptr;
     m_currentDragItem = -1;
@@ -622,7 +602,21 @@ void wxAuiManager::SetManagedWindow(wxWindow* wnd)
     UnInit();
 
     m_frame = wnd;
-    m_frame->PushEventHandler(this);
+    m_frame->Bind(wxEVT_AUI_PANE_BUTTON, &wxAuiManager::OnPaneButton, this);
+    m_frame->Bind(wxEVT_AUI_RENDER, &wxAuiManager::OnRender, this);
+    m_frame->Bind(wxEVT_DESTROY, &wxAuiManager::OnDestroy, this);
+    m_frame->Bind(wxEVT_PAINT, &wxAuiManager::OnPaint, this);
+    m_frame->Bind(wxEVT_ERASE_BACKGROUND, &wxAuiManager::OnEraseBackground, this);
+    m_frame->Bind(wxEVT_SIZE, &wxAuiManager::OnSize, this);
+    m_frame->Bind(wxEVT_SET_CURSOR, &wxAuiManager::OnSetCursor, this);
+    m_frame->Bind(wxEVT_LEFT_DOWN, &wxAuiManager::OnLeftDown, this);
+    m_frame->Bind(wxEVT_LEFT_UP, &wxAuiManager::OnLeftUp, this);
+    m_frame->Bind(wxEVT_MOTION, &wxAuiManager::OnMotion, this);
+    m_frame->Bind(wxEVT_LEAVE_WINDOW, &wxAuiManager::OnLeaveWindow, this);
+    m_frame->Bind(wxEVT_MOUSE_CAPTURE_LOST, &wxAuiManager::OnCaptureLost, this);
+    m_frame->Bind(wxEVT_CHILD_FOCUS, &wxAuiManager::OnChildFocus, this);
+    m_frame->Bind(wxEVT_AUI_FIND_MANAGER, &wxAuiManager::OnFindManager, this);
+    m_frame->Bind(wxEVT_SYS_COLOUR_CHANGED, &wxAuiManager::OnSysColourChanged, this);
 
 #if wxUSE_MDI
     // if the owner is going to manage an MDI parent frame,
@@ -663,7 +657,21 @@ void wxAuiManager::UnInit()
 {
     if (m_frame)
     {
-        m_frame->RemoveEventHandler(this);
+        m_frame->Unbind(wxEVT_AUI_PANE_BUTTON, &wxAuiManager::OnPaneButton, this);
+        m_frame->Unbind(wxEVT_AUI_RENDER, &wxAuiManager::OnRender, this);
+        m_frame->Unbind(wxEVT_DESTROY, &wxAuiManager::OnDestroy, this);
+        m_frame->Unbind(wxEVT_PAINT, &wxAuiManager::OnPaint, this);
+        m_frame->Unbind(wxEVT_ERASE_BACKGROUND, &wxAuiManager::OnEraseBackground, this);
+        m_frame->Unbind(wxEVT_SIZE, &wxAuiManager::OnSize, this);
+        m_frame->Unbind(wxEVT_SET_CURSOR, &wxAuiManager::OnSetCursor, this);
+        m_frame->Unbind(wxEVT_LEFT_DOWN, &wxAuiManager::OnLeftDown, this);
+        m_frame->Unbind(wxEVT_LEFT_UP, &wxAuiManager::OnLeftUp, this);
+        m_frame->Unbind(wxEVT_MOTION, &wxAuiManager::OnMotion, this);
+        m_frame->Unbind(wxEVT_LEAVE_WINDOW, &wxAuiManager::OnLeaveWindow, this);
+        m_frame->Unbind(wxEVT_MOUSE_CAPTURE_LOST, &wxAuiManager::OnCaptureLost, this);
+        m_frame->Unbind(wxEVT_CHILD_FOCUS, &wxAuiManager::OnChildFocus, this);
+        m_frame->Unbind(wxEVT_AUI_FIND_MANAGER, &wxAuiManager::OnFindManager, this);
+        m_frame->Unbind(wxEVT_SYS_COLOUR_CHANGED, &wxAuiManager::OnSysColourChanged, this);
         m_frame = nullptr;
     }
 }
@@ -784,7 +792,7 @@ bool wxAuiManager::AddPane(wxWindow* window, const wxAuiPaneInfo& paneInfo)
 
     // set initial proportion (if not already set)
     if (pinfo.dock_proportion == 0)
-        pinfo.dock_proportion = 100000;
+        pinfo.dock_proportion = maxDockProportion;
 
     if (pinfo.HasGripper())
     {
@@ -896,6 +904,8 @@ bool wxAuiManager::InsertPane(wxWindow* window, const wxAuiPaneInfo& paneInfo,
                 existing_pane.FloatingPosition(paneInfo.floating_pos);
             if (paneInfo.floating_size != wxDefaultSize)
                 existing_pane.FloatingSize(paneInfo.floating_size);
+            if (paneInfo.floating_client_size != wxDefaultSize)
+                existing_pane.FloatingClientSize(paneInfo.floating_client_size);
         }
         else
         {
@@ -1146,7 +1156,9 @@ wxString wxAuiManager::SavePaneInfo(const wxAuiPaneInfo& pane)
     result += wxString::Format(wxT("floatx=%d;"), pane.floating_pos.x);
     result += wxString::Format(wxT("floaty=%d;"), pane.floating_pos.y);
     result += wxString::Format(wxT("floatw=%d;"), pane.floating_size.x);
-    result += wxString::Format(wxT("floath=%d"), pane.floating_size.y);
+    result += wxString::Format(wxT("floath=%d;"), pane.floating_size.y);
+    result += wxString::Format(wxT("floatw_cli=%d;"), pane.floating_client_size.x);
+    result += wxString::Format(wxT("floath_cli=%d"), pane.floating_client_size.y);
 
     return result;
 }
@@ -1154,6 +1166,16 @@ wxString wxAuiManager::SavePaneInfo(const wxAuiPaneInfo& pane)
 // Load a "pane" with the pane information settings in pane_part
 void wxAuiManager::LoadPaneInfo(wxString pane_part, wxAuiPaneInfo &pane)
 {
+    // For backward compatibility, this function needs to handle
+    // both layout2 and layout3.  However, layout3 is a superset
+    // of layout2, so we don't need to actually check both
+    LoadPaneInfoVersioned("layout3", pane_part, pane);
+}
+
+bool wxAuiManager::LoadPaneInfoVersioned(wxString layoutVersion, wxString pane_part, wxAuiPaneInfo& destination)
+{
+    // don't overwrite destination unless pane_part is valid
+    wxAuiPaneInfo pane(destination);
     // replace escaped characters so we can
     // split up the string easily
     pane_part.Replace(wxT("\\|"), wxT("\a"));
@@ -1210,8 +1232,12 @@ void wxAuiManager::LoadPaneInfo(wxString pane_part, wxAuiPaneInfo &pane)
             pane.floating_size.x = wxAtoi(value.c_str());
         else if (val_name == wxT("floath"))
             pane.floating_size.y = wxAtoi(value.c_str());
+        else if (val_name == wxT("floatw_cli") && layoutVersion == "layout3")
+            pane.floating_client_size.x = wxAtoi(value.c_str());
+        else if (val_name == wxT("floath_cli") && layoutVersion == "layout3")
+            pane.floating_client_size.y = wxAtoi(value.c_str());
         else {
-            wxFAIL_MSG(wxT("Bad Perspective String"));
+            return false;
         }
     }
 
@@ -1224,7 +1250,8 @@ void wxAuiManager::LoadPaneInfo(wxString pane_part, wxAuiPaneInfo &pane)
     pane_part.Replace(wxT("\a"), wxT("|"));
     pane_part.Replace(wxT("\b"), wxT(";"));
 
-    return;
+    destination = pane;
+    return true;
 }
 
 
@@ -1237,7 +1264,7 @@ wxString wxAuiManager::SavePerspective()
 {
     wxString result;
     result.Alloc(500);
-    result = wxT("layout2|");
+    result = wxT("layout3|");
 
     for ( const auto& pane : m_panes )
     {
@@ -1260,16 +1287,18 @@ wxString wxAuiManager::SavePerspective()
 bool wxAuiManager::LoadPerspective(const wxString& layout, bool update)
 {
     wxString input = layout;
-    wxString part;
+    wxString layoutVersion;
 
     // check layout string version
     //    'layout1' = wxAUI 0.9.0 - wxAUI 0.9.2
     //    'layout2' = wxAUI 0.9.2 (wxWidgets 2.8)
-    part = input.BeforeFirst(wxT('|'));
+    //    'layout3' = wxWidgets 3.3.1
+    layoutVersion = input.BeforeFirst(wxT('|'));
     input = input.AfterFirst(wxT('|'));
-    part.Trim(true);
-    part.Trim(false);
-    if (part != wxT("layout2"))
+    layoutVersion.Trim(true);
+    layoutVersion.Trim(false);
+    if (layoutVersion != wxT("layout2") &&
+        layoutVersion != wxT("layout3"))
         return false;
 
     // Mark all panes currently managed as hidden. Also, dock all panes that are dockable.
@@ -1329,7 +1358,10 @@ bool wxAuiManager::LoadPerspective(const wxString& layout, bool update)
         pane_part.Replace(wxT("\a"), wxT("|"));
         pane_part.Replace(wxT("\b"), wxT(";"));
 
-        LoadPaneInfo(pane_part, pane);
+        if (!LoadPaneInfoVersioned(layoutVersion, pane_part, pane))
+        {
+            return false;
+        }
 
         if ( pane.IsMaximized() )
             m_hasMaximized = true;
@@ -1368,11 +1400,6 @@ void MakeDIP(wxWindow* w, wxSize& size)
     size = w->ToDIP(size);
 }
 
-void MakeDIP(wxWindow* w, wxRect& rect)
-{
-    rect = wxRect{w->ToDIP(rect.GetPosition()), w->ToDIP(rect.GetSize())};
-}
-
 void MakeLogical(wxWindow* w, wxPoint& pos)
 {
     pos = w->FromDIP(pos);
@@ -1383,12 +1410,84 @@ void MakeLogical(wxWindow* w, wxSize& size)
     size = w->FromDIP(size);
 }
 
-void MakeLogical(wxWindow* w, wxRect& rect)
+} // anonymous namespace
+
+// Copy pane layout information between structs used when (de)serializing the
+// layout and wxAuiPaneInfo itself.
+
+void
+wxAuiManager::CopyDockLayoutFrom(wxAuiDockLayoutInfo& dockInfo,
+                                 const wxAuiPaneInfo& paneInfo) const
 {
-    rect = wxRect{w->FromDIP(rect.GetPosition()), w->FromDIP(rect.GetSize())};
+    dockInfo.dock_direction = paneInfo.dock_direction;
+    dockInfo.dock_layer = paneInfo.dock_layer;
+    dockInfo.dock_row = paneInfo.dock_row;
+    dockInfo.dock_pos = paneInfo.dock_pos;
+    dockInfo.dock_proportion = paneInfo.dock_proportion;
+
+    // Storing the default proportion is not really useful and it looks weird
+    // as it's an arbitrary huge number, so replace it with 0 in serialized
+    // representation, it will be mapped back to maxDockProportion after load.
+    if ( dockInfo.dock_proportion == maxDockProportion )
+        dockInfo.dock_proportion = 0;
+
+    // The dock size is typically not set in the pane itself, but set in its
+    // containing dock, so find it and copy it from there, as we do need to
+    // save it when serializing.
+    dockInfo.dock_size = 0;
+    for ( const auto& d : m_docks )
+    {
+        if ( FindPaneInDock(d, paneInfo.window) )
+        {
+            dockInfo.dock_size = d.size;
+            break;
+        }
+    }
 }
 
-} // anonymous namespace
+void
+wxAuiManager::CopyDockLayoutTo(const wxAuiDockLayoutInfo& dockInfo,
+                               wxAuiPaneInfo& paneInfo) const
+{
+    paneInfo.dock_direction = dockInfo.dock_direction;
+    paneInfo.dock_layer = dockInfo.dock_layer;
+    paneInfo.dock_row = dockInfo.dock_row;
+    paneInfo.dock_pos = dockInfo.dock_pos;
+    paneInfo.dock_proportion = dockInfo.dock_proportion;
+    paneInfo.dock_size = dockInfo.dock_size;
+
+    // Undo the transformation done in CopyDockLayoutFrom() above.
+    if ( dockInfo.dock_proportion == 0 )
+        paneInfo.dock_proportion = maxDockProportion;
+}
+
+void
+wxAuiManager::CopyLayoutFrom(wxAuiPaneLayoutInfo& layoutInfo,
+                             const wxAuiPaneInfo& pane) const
+{
+    CopyDockLayoutFrom(layoutInfo, pane);
+
+    layoutInfo.floating_pos = pane.floating_pos;
+    layoutInfo.floating_size = pane.floating_size;
+    layoutInfo.floating_client_size = pane.floating_client_size;
+
+    layoutInfo.is_maximized = pane.HasFlag(wxAuiPaneInfo::optionMaximized);
+    layoutInfo.is_hidden = pane.HasFlag(wxAuiPaneInfo::optionHidden);
+}
+
+void
+wxAuiManager::CopyLayoutTo(const wxAuiPaneLayoutInfo& layoutInfo,
+                           wxAuiPaneInfo& pane) const
+{
+    CopyDockLayoutTo(layoutInfo, pane);
+
+    pane.floating_pos = layoutInfo.floating_pos;
+    pane.floating_size = layoutInfo.floating_size;
+    pane.floating_client_size = layoutInfo.floating_client_size;
+
+    pane.SetFlag(wxAuiPaneInfo::optionMaximized, layoutInfo.is_maximized);
+    pane.SetFlag(wxAuiPaneInfo::optionHidden, layoutInfo.is_hidden);
+}
 
 void wxAuiManager::SaveLayout(wxAuiSerializer& serializer) const
 {
@@ -1398,66 +1497,40 @@ void wxAuiManager::SaveLayout(wxAuiSerializer& serializer) const
     {
         serializer.BeforeSavePanes();
 
+        // Collect information about all the notebooks we may have while saving
+        // the panes layout.
+        std::map<wxString, wxAuiNotebook*> notebooks;
+
         for ( const auto& pane : m_panes )
         {
-            auto paneDIP = pane;
+            wxAuiPaneLayoutInfo layoutInfo{pane.name};
+            CopyLayoutFrom(layoutInfo, pane);
 
-            MakeDIP(m_frame, paneDIP.best_size);
-            MakeDIP(m_frame, paneDIP.min_size);
-            MakeDIP(m_frame, paneDIP.max_size);
+            MakeDIP(m_frame, layoutInfo.floating_pos);
+            MakeDIP(m_frame, layoutInfo.floating_size);
+            MakeDIP(m_frame, layoutInfo.floating_client_size);
 
-            MakeDIP(m_frame, paneDIP.floating_pos);
-            MakeDIP(m_frame, paneDIP.floating_size);
+            serializer.SavePane(layoutInfo);
 
-            MakeDIP(m_frame, paneDIP.rect);
-
-            serializer.SavePane(paneDIP);
+            if ( auto* const nb = wxDynamicCast(pane.window, wxAuiNotebook) )
+            {
+                notebooks[pane.name] = nb;
+            }
         }
 
         serializer.AfterSavePanes();
-    }
 
-    if ( !m_docks.empty() )
-    {
-        serializer.BeforeSaveDocks();
-
-        for ( const auto& dock : m_docks )
+        if ( !notebooks.empty() )
         {
-            auto dockDIP = dock;
+            serializer.BeforeSaveNotebooks();
 
-            MakeDIP(m_frame, dockDIP.rect);
-
-            // Update dock sizes to ensure that restoring this layout later
-            // restores the same geometry as is used now: if we didn't do it,
-            // panes would have their initial sizes.
-            switch ( dock.dock_direction )
+            for ( const auto& kv : notebooks )
             {
-                case wxAUI_DOCK_TOP:
-                case wxAUI_DOCK_BOTTOM:
-                    dockDIP.size = dock.rect.height;
-                    break;
-
-                case wxAUI_DOCK_LEFT:
-                case wxAUI_DOCK_RIGHT:
-                    dockDIP.size = dock.rect.width;
-                    break;
-
-                case wxAUI_DOCK_CENTER:
-                    // Not clear what to do for this one, but it shouldn't
-                    // matter as its size is determined by what remains
-                    // available after positioning the rest of the elements, so
-                    // don't do anything.
-                    break;
-
-                case wxAUI_DOCK_NONE:
-                    wxFAIL_MSG("invalid dock direction");
-                    break;
+                kv.second->SaveLayout(kv.first, serializer);
             }
 
-            serializer.SaveDock(dockDIP);
+            serializer.AfterSaveNotebooks();
         }
-
-        serializer.AfterSaveDocks();
     }
 
     serializer.AfterSave();
@@ -1467,10 +1540,8 @@ void wxAuiManager::LoadLayout(wxAuiDeserializer& deserializer)
 {
     deserializer.BeforeLoad();
 
-    // Note that we don't reset m_hasMaximized here but use a local variable so
-    // as to avoid modifying m_hasMaximized in case one of the deserializer
-    // functions called below throws an exception.
-    bool hasMaximized = false;
+    // This will be non-empty only if we have a maximized pane.
+    wxString maximizedPaneName;
 
     // Also keep local variables for the existing (and possibly updated) panes
     // and the new ones for the same reason.
@@ -1489,63 +1560,65 @@ void wxAuiManager::LoadLayout(wxAuiDeserializer& deserializer)
     };
     std::vector<NewPane> newPanes;
 
-    for ( const auto& paneDIP : deserializer.LoadPanes() )
+    auto layoutInfos = deserializer.LoadPanes();
+    for ( auto& layoutInfo : layoutInfos )
     {
-        auto pane = paneDIP;
-
-        MakeLogical(m_frame, pane.best_size);
-        MakeLogical(m_frame, pane.min_size);
-        MakeLogical(m_frame, pane.max_size);
-
-        MakeLogical(m_frame, pane.floating_pos);
-        MakeLogical(m_frame, pane.floating_size);
-
-        MakeLogical(m_frame, pane.rect);
-
-        if ( pane.IsMaximized() )
-            hasMaximized = true;
+        MakeLogical(m_frame, layoutInfo.floating_pos);
+        MakeLogical(m_frame, layoutInfo.floating_size);
+        MakeLogical(m_frame, layoutInfo.floating_client_size);
 
         // Find the pane with the same name in the existing layout.
-        bool found = false;
+        wxWindow* window = nullptr;
         for ( auto& existingPane : panes )
         {
-            if ( existingPane.name == pane.name )
+            if ( existingPane.name == layoutInfo.name )
             {
                 // Update the existing pane with the restored layout.
-                existingPane.SafeSet(pane);
+                CopyLayoutTo(layoutInfo, existingPane);
 
-                found = true;
+                if ( layoutInfo.is_maximized )
+                    maximizedPaneName = existingPane.name;
+
+                window = existingPane.window;
                 break;
             }
         }
 
         // This pane couldn't be found in the existing layout, let deserializer
         // create a new window for it if desired, otherwise just ignore it.
-        if ( !found )
+        if ( !window )
         {
-            if ( const auto w = deserializer.CreatePaneWindow(pane) )
-                newPanes.emplace_back(w, pane);
+            wxAuiPaneInfo pane;
+            pane.name = layoutInfo.name;
+            CopyLayoutTo(layoutInfo, pane);
+
+            window = deserializer.CreatePaneWindow(pane);
+            if ( !window )
+                continue;
+
+            newPanes.emplace_back(window, pane);
+
+            if ( layoutInfo.is_maximized )
+                maximizedPaneName = pane.name;
+        }
+
+        if ( auto* const nb = wxDynamicCast(window, wxAuiNotebook) )
+        {
+            nb->LoadLayout(layoutInfo.name, deserializer);
         }
     }
 
-    wxAuiDockInfoArray docks;
-    for ( const auto& dockDIP : deserializer.LoadDocks() )
-    {
-        auto dock = dockDIP;
-
-        MakeLogical(m_frame, dock.rect);
-
-        docks.push_back(dock);
-    }
-
     // After loading everything successfully, do update the internal variables.
-    m_hasMaximized = hasMaximized;
     m_panes.swap(panes);
 
     for ( const auto& newPane : newPanes )
         AddPane(newPane.window, newPane.info);
 
-    m_docks.swap(docks);
+    if ( !maximizedPaneName.empty() )
+        MaximizePane(GetPane(maximizedPaneName));
+
+    // Force recreating the docks using the new sizes from the panes.
+    m_docks.clear();
 
     deserializer.AfterLoad();
 }
@@ -1578,9 +1651,9 @@ void wxAuiManager::GetPanePositionsAndSizes(wxAuiDockInfo& dock,
     for ( auto* p : dock.panes )
     {
         wxAuiPaneInfo& pane = *p;
-        int caption_size = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE));
-        int pane_borderSize = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE));
-        int gripperSize = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_GRIPPER_SIZE));
+        int caption_size = m_art->GetMetricForWindow(wxAUI_DOCKART_CAPTION_SIZE, pane.window);
+        int pane_borderSize = m_art->GetMetricForWindow(wxAUI_DOCKART_PANE_BORDER_SIZE, pane.window);
+        int gripperSize = m_art->GetMetricForWindow(wxAUI_DOCKART_GRIPPER_SIZE, pane.window);
 
         positions.Add(pane.dock_pos);
         int size = 0;
@@ -1647,10 +1720,10 @@ void wxAuiManager::LayoutAddPane(wxSizer* cont,
     wxAuiDockUIPart part;
     wxSizerItem* sizer_item;
 
-    int caption_size = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE));
-    int gripperSize = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_GRIPPER_SIZE));
-    int pane_borderSize = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE));
-    int pane_button_size = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_PANE_BUTTON_SIZE));
+    int caption_size = m_art->GetMetricForWindow(wxAUI_DOCKART_CAPTION_SIZE, pane.window);
+    int gripperSize = m_art->GetMetricForWindow(wxAUI_DOCKART_GRIPPER_SIZE, pane.window);
+    int pane_borderSize = m_art->GetMetricForWindow(wxAUI_DOCKART_PANE_BORDER_SIZE, pane.window);
+    int pane_button_size = m_art->GetMetricForWindow(wxAUI_DOCKART_PANE_BUTTON_SIZE, pane.window);
 
     // find out the orientation of the item (orientation for panes
     // is the same as the dock's orientation)
@@ -1829,7 +1902,7 @@ void wxAuiManager::LayoutAddDock(wxSizer* cont,
     wxSizerItem* sizer_item;
     wxAuiDockUIPart part;
 
-    int sashSize = m_frame->FromDIP(m_art->GetMetric(wxAUI_DOCKART_SASH_SIZE));
+    int sashSize = m_art->GetMetricForWindow(wxAUI_DOCKART_SASH_SIZE, m_frame);
     int orientation = dock.IsHorizontal() ? wxHORIZONTAL : wxVERTICAL;
 
     // resizable bottom and right docks have a sash before them
@@ -1985,8 +2058,8 @@ wxSizer* wxAuiManager::LayoutAll(wxAuiPaneInfoArray& panes,
                                  wxAuiDockUIPartArray& uiparts,
                                  bool spacer_only)
 {
-    int pane_borderSize = m_frame->FromDIP(m_art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE));
-    int caption_size = m_frame->FromDIP(m_art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE));
+    int pane_borderSize = m_art->GetMetricForWindow(wxAUI_DOCKART_PANE_BORDER_SIZE, m_frame);
+    int caption_size = m_art->GetMetricForWindow(wxAUI_DOCKART_CAPTION_SIZE, m_frame);
     wxSize cli_size = m_frame->GetClientSize();
 
 
@@ -2021,6 +2094,11 @@ wxSizer* wxAuiManager::LayoutAll(wxAuiPaneInfoArray& panes,
         {
             // found the right dock
             dock = dockInfo;
+
+            // if we've just recreated it, apply the dock size possibly saved
+            // in the pane to it
+            if ( dock->size == 0 )
+                dock->size = p.dock_size;
         }
         if ( !dock )
         {
@@ -2029,6 +2107,7 @@ wxSizer* wxAuiManager::LayoutAll(wxAuiPaneInfoArray& panes,
             d.dock_direction = p.dock_direction;
             d.dock_layer = p.dock_layer;
             d.dock_row = p.dock_row;
+            d.size = p.dock_size;
             docks.Add(d);
             dock = &docks.Last();
         }
@@ -2481,11 +2560,22 @@ void wxAuiManager::Update()
             {
                 // frame already exists, make sure its position
                 // and size reflect the information in wxAuiPaneInfo
-                if ((p.frame->GetPosition() != p.floating_pos) || (p.frame->GetSize() != p.floating_size))
+                // give floating_client_size precedence over floating_size
+                if ((p.frame->GetPosition() != p.floating_pos) ||
+                    ((p.floating_size != wxDefaultSize) && (p.frame->GetSize() != p.floating_size)) ||
+                    ((p.floating_client_size != wxDefaultSize) && (p.frame->GetClientSize() != p.floating_client_size)))
                 {
-                    p.frame->SetSize(p.floating_pos.x, p.floating_pos.y,
-                                     p.floating_size.x, p.floating_size.y,
-                                     wxSIZE_USE_EXISTING);
+                    if (p.floating_client_size != wxDefaultSize)
+                    {
+                        p.frame->SetPosition(p.floating_pos);
+                        p.frame->SetClientSize(p.floating_client_size);
+                    }
+                    else
+                    {
+                        p.frame->SetSize(p.floating_pos.x, p.floating_pos.y,
+                                         p.floating_size.x, p.floating_size.y,
+                                         wxSIZE_USE_EXISTING);
+                    }
                 /*
                     p.frame->SetSize(p.floating_pos.x, p.floating_pos.y,
                                      wxDefaultCoord, wxDefaultCoord,
@@ -2739,6 +2829,7 @@ bool wxAuiManager::ProcessDockResult(wxAuiPaneInfo& target,
             {
                 target.best_size = hintSize;
                 target.floating_size = wxDefaultSize;
+                target.floating_client_size = wxDefaultSize;
             }
         }
     }
@@ -3404,27 +3495,25 @@ void wxAuiManager::DrawHintRect(wxWindow* pane_window,
                                 const wxPoint& pt,
                                 const wxPoint& offset)
 {
-    const wxRect rect = CalculateHintRect(pane_window, pt, offset);
-    if (rect != m_lastHint)
-        UpdateHint(rect);
+    UpdateHint(CalculateHintRect(pane_window, pt, offset));
 }
 
 void wxAuiManager::UpdateHint(const wxRect& rect)
 {
+    if (rect == m_lastHint)
+        return;
+
+    m_lastHint = rect;
+
     if (rect.IsEmpty())
     {
         HideHint();
     }
     else
     {
-        m_lastHint = rect;
-
         // Decide if we want to fade in the hint and set it to the end value if
         // we don't.
-        if ((m_flags & wxAUI_MGR_HINT_FADE)
-            && !((m_flags & wxAUI_MGR_VENETIAN_BLINDS_HINT) &&
-                 (m_flags & wxAUI_MGR_NO_VENETIAN_BLINDS_FADE))
-            )
+        if (m_flags & wxAUI_MGR_HINT_FADE)
             m_hintFadeAmt = 0;
         else
             m_hintFadeAmt = m_hintFadeMax;
@@ -3635,8 +3724,15 @@ void wxAuiManager::OnFloatingPaneResized(wxWindow* wnd, const wxRect& rect)
     // try to find the pane
     wxAuiPaneInfo& pane = GetPane(wnd);
     wxASSERT_MSG(pane.IsOk(), wxT("Pane window not found"));
+    // if frame isn't fully set up, don't stomp on pos/size info
+    if (!pane.frame)
+    {
+        return;
+    }
 
-    pane.FloatingSize(rect.GetWidth(), rect.GetHeight());
+    // Setting floating client size is enough, there is no need to set floating
+    // size, as it won't be used if the client size is set.
+    pane.FloatingClientSize(pane.frame->WindowToClientSize(rect.GetSize()));
 
     // the top-left position may change as well as the size
     pane.FloatingPosition(rect.x, rect.y);
@@ -4067,7 +4163,7 @@ bool wxAuiManager::DoEndResizeAction(wxMouseEvent& event)
     if (m_actionPart && m_actionPart->type==wxAuiDockUIPart::typeDockSizer)
     {
         // first, we must calculate the maximum size the dock may be
-        int sashSize = m_frame->FromDIP(m_art->GetMetric(wxAUI_DOCKART_SASH_SIZE));
+        int sashSize = m_art->GetMetricForWindow(wxAUI_DOCKART_SASH_SIZE, m_frame);
 
         int used_width = 0, used_height = 0;
 
@@ -4157,9 +4253,9 @@ bool wxAuiManager::DoEndResizeAction(wxMouseEvent& event)
         int dock_pixels = 0;
         int new_pixsize = 0;
 
-        int caption_size = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE));
-        int pane_borderSize = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_PANE_BORDER_SIZE));
-        int sashSize = pane.window->FromDIP(m_art->GetMetric(wxAUI_DOCKART_SASH_SIZE));
+        int caption_size = m_art->GetMetricForWindow(wxAUI_DOCKART_CAPTION_SIZE, pane.window);
+        int pane_borderSize = m_art->GetMetricForWindow(wxAUI_DOCKART_PANE_BORDER_SIZE, pane.window);
+        int sashSize = m_art->GetMetricForWindow(wxAUI_DOCKART_SASH_SIZE, pane.window);
 
         wxPoint new_pos(event.m_x - m_actionOffset.x,
             event.m_y - m_actionOffset.y);

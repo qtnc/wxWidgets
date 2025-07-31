@@ -2796,7 +2796,7 @@ wxRichTextRange wxRichTextParagraphLayoutBox::AddParagraphs(const wxString& text
 
     while (i < len)
     {
-        wxChar ch = text[i];
+        wxUniChar ch = text[i];
         if (ch == wxT('\n') || ch == wxT('\r'))
         {
             if (i != (len-1))
@@ -7753,7 +7753,7 @@ long wxRichTextPlainText::GetFirstLineBreakPosition(long pos)
     int startPos = pos - m_range.GetStart();
     for (i = startPos; i < len; i++)
     {
-        wxChar ch = m_text[i];
+        wxUniChar ch = m_text[i];
         if (ch == wxRichTextLineBreakChar)
         {
             return i + m_range.GetStart();
@@ -8954,10 +8954,8 @@ bool wxRichTextBuffer::PasteFromClipboard(long position)
 #ifdef __WXMSW__
                 wxString text2;
                 text2.Alloc(text.length()+1);
-                size_t i;
-                for (i = 0; i < text.length(); i++)
+                for ( wxUniChar ch : text )
                 {
-                    wxChar ch = text[i];
                     if (ch != wxT('\r'))
                         text2 += ch;
                 }
@@ -12522,7 +12520,7 @@ bool wxRichTextImage::LoadImageCache(wxReadOnlyDC& dc, wxRichTextDrawingContext&
     // Don't repeat unless absolutely necessary
     if (m_imageCache.IsOk() && !resetCache && !context.GetLayingOut())
     {
-        retImageSize = wxSize(m_imageCache.GetLogicalWidth(), m_imageCache.GetLogicalHeight());
+        retImageSize = m_imageCache.GetLogicalSize();
         return true;
     }
 
@@ -12537,7 +12535,7 @@ bool wxRichTextImage::LoadImageCache(wxReadOnlyDC& dc, wxRichTextDrawingContext&
             m_imageCache = bitmap;
             m_imageState = ImageState_Loaded;
         }
-        retImageSize = wxSize(m_imageCache.GetLogicalWidth(), m_imageCache.GetLogicalHeight());
+        retImageSize = m_imageCache.GetLogicalSize();
         return true;
     }
 
@@ -12555,7 +12553,7 @@ bool wxRichTextImage::LoadImageCache(wxReadOnlyDC& dc, wxRichTextDrawingContext&
         {
             wxBitmap bitmap(image_placeholder24x24_xpm);
             m_imageCache = bitmap;
-            m_originalImageSize = wxSize(bitmap.GetLogicalWidth(), bitmap.GetLogicalHeight());
+            m_originalImageSize = bitmap.GetLogicalSize();
             m_imageState = ImageState_Bad;
             retImageSize = m_originalImageSize;
             return false;
@@ -12733,7 +12731,7 @@ bool wxRichTextImage::LoadAndScaleImageCache(wxImage& image, const wxSize& sz, w
             wxImage img;
             if (image.GetWidth() <= upscaleThreshold || image.GetHeight() <= upscaleThreshold)
             {
-                img = image.Scale(image.GetWidth()*2, image.GetHeight()*2);
+                img = image.Scale(2*image.GetSize());
                 img.Rescale(width*scaleFactor, height*scaleFactor, wxIMAGE_QUALITY_HIGH);
             }
             else

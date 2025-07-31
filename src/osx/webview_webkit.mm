@@ -23,6 +23,7 @@
 
 #include "wx/osx/private.h"
 #include "wx/osx/core/cfref.h"
+#include "wx/osx/cocoa/private/date.h"
 #include "wx/osx/private/available.h"
 #include "wx/private/jsscriptwrapper.h"
 #include "wx/private/webview.h"
@@ -36,9 +37,7 @@
 #include <WebKit/WebKit.h>
 #include <Foundation/NSURLError.h>
 
-// using native types to get compile errors and warnings
-
-#define DEBUG_WEBKIT_SIZING 0
+using namespace wxOSXImpl;
 
 // ----------------------------------------------------------------------------
 // macros
@@ -513,6 +512,62 @@ bool wxWebViewWebKit::SetUserAgent(const wxString& userAgent)
         return false;
 }
 
+bool wxWebViewWebKit::ClearBrowsingData(int types, wxDateTime since)
+{
+    if ( WX_IS_MACOS_AVAILABLE(10, 11) )
+    {
+        // We return immediately if wxWEBVIEW_BROWSING_DATA_OTHER is specified
+        // on its own as it doesn't do anything, but we just ignore it if it is
+        // given together with something else.
+        if (types == wxWEBVIEW_BROWSING_DATA_OTHER)
+            return false;
+
+        NSSet<NSString*>* clearDataTypes = nil;
+        if (types & wxWEBVIEW_BROWSING_DATA_ALL)
+        {
+            clearDataTypes = [WKWebsiteDataStore allWebsiteDataTypes];
+        }
+        else
+        {
+            NSMutableSet<NSString*>* dataTypes = [[NSMutableSet alloc] init];
+            if (types & wxWEBVIEW_BROWSING_DATA_COOKIES)
+                [dataTypes addObject:WKWebsiteDataTypeCookies];
+            if (types & wxWEBVIEW_BROWSING_DATA_CACHE)
+                [dataTypes addObjectsFromArray:@[
+                    WKWebsiteDataTypeDiskCache,
+                    WKWebsiteDataTypeMemoryCache,
+                    WKWebsiteDataTypeOfflineWebApplicationCache
+                ]];
+            if (types & wxWEBVIEW_BROWSING_DATA_DOM_STORAGE)
+                [dataTypes addObjectsFromArray:@[
+                    WKWebsiteDataTypeLocalStorage,
+                    WKWebsiteDataTypeSessionStorage,
+                    WKWebsiteDataTypeWebSQLDatabases,
+                    WKWebsiteDataTypeIndexedDBDatabases
+                ]];
+
+            clearDataTypes = dataTypes;
+        }
+
+        // We rely on the fact that NSDateFromWX() returns nil for invalid
+        // date, as this is exactly what we want here: if the date is not
+        // specified, we pass nil to clear everything.
+        [m_webView.configuration.websiteDataStore removeDataOfTypes:clearDataTypes
+            modifiedSince:NSDateFromWX(since) completionHandler:^{
+                wxWebViewEvent event(wxEVT_WEBVIEW_BROWSING_DATA_CLEARED,
+                    GetId(),
+                    GetCurrentURL(),
+                    "");
+                event.SetInt(1);
+                ProcessWindowEvent(event);
+            }];
+
+        return true;
+    }
+    else
+        return false;
+}
+
 void wxWebViewWebKit::SetZoomType(wxWebViewZoomType zoomType)
 {
     // there is only one supported zoom type at the moment so this setter
@@ -615,12 +670,12 @@ wxString wxWebViewWebKit::GetCurrentTitle() const
 
 float wxWebViewWebKit::GetZoomFactor() const
 {
-    return m_webView.magnification;
+    return float(m_webView.magnification);
 }
 
 void wxWebViewWebKit::SetZoomFactor(float zoom)
 {
-    m_webView.magnification = zoom;
+    m_webView.magnification = double(zoom);
 }
 
 void wxWebViewWebKit::DoSetPage(const wxString& src, const wxString& baseUrl)
@@ -925,7 +980,7 @@ wxString nsErrorToWxHtmlError(NSError* error, wxWebViewNavigationError* out)
 
 - (void)webView:(WKWebView *)webView
     didFailNavigation:(WKNavigation *)navigation
-            withError:(NSError *)error;
+            withError:(NSError *)error
 {
     if (webKitWindow){
         NSString *url = webView.URL.absoluteString;
@@ -948,7 +1003,7 @@ wxString nsErrorToWxHtmlError(NSError* error, wxWebViewNavigationError* out)
 
 - (void)webView:(WKWebView *)webView
     didFailProvisionalNavigation:(WKNavigation *)navigation
-                       withError:(NSError *)error;
+                       withError:(NSError *)error
 {
     if (webKitWindow){
         NSString *url = webView.URL.absoluteString;

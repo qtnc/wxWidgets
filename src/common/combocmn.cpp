@@ -1386,18 +1386,15 @@ bool wxComboCtrlBase::SetForegroundColour(const wxColour& colour)
 
 bool wxComboCtrlBase::SetBackgroundColour(const wxColour& colour)
 {
+    if ( !wxControl::SetBackgroundColour(colour) )
+        return false;
+
     if ( m_mainWindow )
         m_mainWindow->SetBackgroundColour(colour);
+
     m_tcBgCol = colour;
     m_hasTcBgCol = true;
     return true;
-}
-
-wxColour wxComboCtrlBase::GetBackgroundColour() const
-{
-    if ( m_mainWindow )
-        return m_mainWindow->GetBackgroundColour();
-    return m_tcBgCol;
 }
 
 // ----------------------------------------------------------------------------
@@ -1808,7 +1805,7 @@ void wxComboCtrlBase::HandleNormalMouseEvent( wxMouseEvent& event )
             // relay (some) mouse events to the popup
             m_popup->GetEventHandler()->ProcessEvent(event);
         }
-        else if ( event.GetWheelAxis() == 0 &&
+        else if ( event.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL &&
                   event.GetWheelRotation() != 0 &&
                   event.GetModifiers() == 0 )
         {

@@ -50,6 +50,7 @@
 #include <windowsx.h>
 
 #include "wx/msw/private.h"
+#include "wx/msw/private/darkmode.h"
 #include "wx/msw/winundef.h"
 
 #include <string.h>
@@ -349,6 +350,17 @@ private:
 
 namespace
 {
+struct InsertTextData
+{
+    // VS14.0 refuses to compile code that uses initializer list to create objects
+    // of this struct: InsertTextData{_somevalue_}; // VS14.0 rejects this
+    explicit InsertTextData(unsigned long len) : lenOfInsertedText(len)
+    {
+    }
+
+    unsigned long lenOfInsertedText = 0;
+    unsigned long oldMaximumLength = 0;
+};
 
 // This stack stores the length of the text being currently inserted into the
 // current control.
@@ -358,7 +370,7 @@ namespace
 // time (but possibly more than into one, if wxEVT_TEXT event handler does
 // something that results in another text control update), and we don't want to
 // waste space in every wxTextCtrl object for this field unnecessarily.
-wxStack<int> gs_lenOfInsertedText;
+wxStack<InsertTextData> gs_insertTextData;
 
 } // anonymous namespace
 
@@ -462,9 +474,10 @@ bool wxTextCtrl::Create(wxWindow *parent,
     if ( !MSWCreateText(value, pos, size) )
         return false;
 
-#if wxUSE_DRAG_AND_DROP && wxUSE_RICHEDIT
+#if wxUSE_RICHEDIT
     if ( IsRich() )
     {
+#if wxUSE_DRAG_AND_DROP
         // rich text controls have a default associated drop target which
         // allows them to receive (rich) text dropped on them, which is nice,
         // but prevents us from associating a user-defined drop target with
@@ -473,8 +486,16 @@ bool wxTextCtrl::Create(wxWindow *parent,
         // to make it work, we set m_dropTarget to this special value initially
         // and check for it in our SetDropTarget()
         m_dropTarget = wxRICHTEXT_DEFAULT_DROPTARGET;
+#endif // wxUSE_DRAG_AND_DROP
+
+        if ( wxMSWDarkMode::IsActive() )
+        {
+            // We need to set the colours explicitly for rich text controls.
+            SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+            SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+        }
     }
-#endif // wxUSE_DRAG_AND_DROP && wxUSE_RICHEDIT
+#endif // wxUSE_RICHEDIT
 
     return true;
 }
@@ -490,9 +511,6 @@ bool wxTextCtrl::MSWCreateText(const wxString& value,
                                const wxPoint& pos,
                                const wxSize& size)
 {
-    // translate wxWin style flags to MSW ones
-    WXDWORD msStyle = MSWGetCreateWindowFlags();
-
     // do create the control - either an EDIT or RICHEDIT
     wxString windowClass = wxT("EDIT");
 
@@ -613,7 +631,7 @@ bool wxTextCtrl::MSWCreateText(const wxString& value,
     // implementation detail
     m_updatesCount = -2;
 
-    if ( !MSWCreateControl(windowClass.t_str(), msStyle, pos, size, valueWin) )
+    if ( !MSWCreateControl(windowClass.t_str(), valueWin, pos, size) )
     {
         // There is one case in which window creation may realistically fail
         // and this is when we create a plain EDIT control with too long text,
@@ -636,6 +654,20 @@ bool wxTextCtrl::MSWCreateText(const wxString& value,
 #if wxUSE_RICHEDIT
     if (IsRich())
     {
+        // RICHEDIT50W automatically adds WS_EX_CLIENTEDGE to its style for
+        // some reason and while this isn't very noticeable in light mode, it
+        // looks really bad in dark mode, so forcibly remove it unless it was
+        // explicitly requested.
+        if ( GetBorder() != wxBORDER_SUNKEN && wxMSWDarkMode::IsActive() )
+        {
+            const auto origExStyle = ::GetWindowLongPtr(GetHwnd(), GWL_EXSTYLE);
+            if ( origExStyle & WS_EX_CLIENTEDGE )
+            {
+                ::SetWindowLongPtr(GetHwnd(), GWL_EXSTYLE,
+                                   origExStyle & ~WS_EX_CLIENTEDGE);
+            }
+        }
+
 #if wxUSE_INKEDIT
         if (IsInkEdit())
         {
@@ -1144,8 +1176,7 @@ wxString wxTextCtrl::GetRTFValue() const
     buffer.reserve(GetLastPosition() * 2);
 
     // Use a EDITSTREAMCALLBACK to stream text out from the control.
-    EDITSTREAM es{ 0 };
-    es.dwError = 0;
+    EDITSTREAM es = { };
     es.pfnCallback = MSWEditStreamOutCallback;
     // our callback will write to a char buffer (i.e., std::string)
     es.dwCookie = reinterpret_cast<DWORD_PTR>(&buffer);
@@ -1174,7 +1205,7 @@ void wxTextCtrl::SetRTFValue(const wxString& val)
 {
     wxCHECK_RET(IsRich(), "RTF support is only available for rich controls!");
 
-    SETTEXTEX textInfo{ 0 };
+    SETTEXTEX textInfo = { };
     textInfo.flags = ST_DEFAULT | ST_UNICODE;
     textInfo.codepage = 1200;
 
@@ -1234,7 +1265,7 @@ wxTextSearchResult wxTextCtrl::SearchText(const wxTextSearch& search) const
     }
     else
     {
-        // will search from the start of the selection and upward
+        // will search from the end (or user-provided position) and go upward
         // to the start of the text
         findText.chrg.cpMax = 0;
     }
@@ -1292,17 +1323,19 @@ void wxTextCtrl::DoWriteText(const wxString& value, int flags)
 
     // Remember the length of the text we're inserting so that
     // AdjustSpaceLimit() could adjust the limit to be big enough for it:
-    // and also signal us whether it did it by resetting it to 0.
-    gs_lenOfInsertedText.push(valueDos.length());
+    // and also signal us whether it did it by setting the oldMaximumLength field.
+    // Notice that the cast is needed because length() returns unsigned long long
+    // under x64 systems.
+    gs_insertTextData.push(InsertTextData(static_cast<unsigned long>(valueDos.length())));
 
     ::SendMessage(GetHwnd(), selectionOnly ? EM_REPLACESEL : WM_SETTEXT,
                   // EM_REPLACESEL takes 1 to indicate the operation should be redoable
                   selectionOnly ? 1 : 0, wxMSW_CONV_LPARAM(valueDos));
 
-    const int lenActuallyInserted = gs_lenOfInsertedText.top();
-    gs_lenOfInsertedText.pop();
+    const auto oldMaxLength = gs_insertTextData.top().oldMaximumLength;
+    gs_insertTextData.pop();
 
-    if ( lenActuallyInserted == -1 )
+    if ( oldMaxLength > 0 )
     {
         // Text size limit has been hit and added text has been truncated.
         // But the max length has been increased by the EN_MAXTEXT message
@@ -1313,6 +1346,8 @@ void wxTextCtrl::DoWriteText(const wxString& value, int flags)
 
         ::SendMessage(GetHwnd(), selectionOnly ? EM_REPLACESEL : WM_SETTEXT,
                       selectionOnly ? 1 : 0, wxMSW_CONV_LPARAM(valueDos));
+
+        SetMaxLength(oldMaxLength); // Restore the old max length
     }
 
     if ( !ucf.GotUpdate() && (flags & SetValue_SendEvent) )
@@ -2571,8 +2606,11 @@ bool wxTextCtrl::HasSpaceLimit(unsigned int *len) const
 bool wxTextCtrl::AdjustSpaceLimit()
 {
     unsigned int limit;
-    if ( HasSpaceLimit(&limit) )
+    if ( HasSpaceLimit(&limit) && gs_insertTextData.empty() )
+    {
+        // Do nothing if the text is entered interactively.
         return false;
+    }
 
     unsigned int len = ::GetWindowTextLength(GetHwnd());
     if ( len >= limit )
@@ -2583,12 +2621,13 @@ bool wxTextCtrl::AdjustSpaceLimit()
         // it too many times make sure that we make it at least big enough to
         // fit all the text we are currently inserting into the control, if
         // we're inserting any, i.e. if we're called from DoWriteText().
-        if ( !gs_lenOfInsertedText.empty() )
+        if ( !gs_insertTextData.empty() )
         {
-            increaseBy = gs_lenOfInsertedText.top();
+            auto& data = gs_insertTextData.top();
+            increaseBy = data.lenOfInsertedText;
 
-            // Indicate to the caller that we increased the limit.
-            gs_lenOfInsertedText.top() = -1;
+            // Save the old max length (will be restored in DoWriteText())
+            data.oldMaximumLength = limit;
         }
         else // Not inserting text, must be text actually typed by user.
         {

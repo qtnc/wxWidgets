@@ -48,6 +48,7 @@ set(TEST_GUI_SRC
     controls/htmllboxtest.cpp
     controls/hyperlinkctrltest.cpp
     controls/itemcontainertest.cpp
+    controls/infobar.cpp
     controls/label.cpp
     controls/listbasetest.cpp
     controls/listbooktest.cpp
@@ -91,6 +92,7 @@ set(TEST_GUI_SRC
     exec/exec.cpp
     font/fonttest.cpp
     image/image.cpp
+    image/imagwebp.cpp
     image/rawbmp.cpp
     html/htmlparser.cpp
     html/htmlwindow.cpp
@@ -147,6 +149,7 @@ set(TEST_GUI_DATA
     horse.tga
     horse.tif
     horse.xpm
+    horse.webp
     image/bitfields.bmp
     image/bitfields-alpha.bmp
     image/8bpp-colorsused-large.bmp
@@ -156,6 +159,9 @@ set(TEST_GUI_DATA
     image/32bpp_rgb_a0.ico
     image/badrle4.bmp
     image/rgb16-3103.bmp
+    image/rgb32-7187.bmp
+    image/rgb32bf.bmp
+    image/rgba32.bmp
     image/rle4-delta-320x240.bmp
     image/rle8-delta-320x240-expected.bmp
     image/rle8-delta-320x240.bmp

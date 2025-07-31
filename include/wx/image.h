@@ -352,6 +352,9 @@ public:
     // return the new image with size width*height
     wxImage Scale( int width, int height,
                    wxImageResizeQuality quality = wxIMAGE_QUALITY_NORMAL ) const;
+    wxImage Scale(const wxSize& size,
+                  wxImageResizeQuality quality = wxIMAGE_QUALITY_NORMAL) const
+        { return Scale(size.GetWidth(), size.GetHeight(), quality); }
 
     // box averager and bicubic filters for up/down sampling
     wxImage ResampleNearest(int width, int height) const;
@@ -370,6 +373,9 @@ public:
     wxImage& Rescale( int width, int height,
                       wxImageResizeQuality quality = wxIMAGE_QUALITY_NORMAL )
         { return *this = Scale(width, height, quality); }
+    wxImage& Rescale( const wxSize& size,
+                      wxImageResizeQuality quality = wxIMAGE_QUALITY_NORMAL )
+        { return *this = Scale(size, quality); }
 
     // resizes the image in place
     wxImage& Resize( const wxSize& size, const wxPoint& pos,
@@ -433,8 +439,8 @@ public:
     // This method converts an image where the original alpha
     // information is only available as a shades of a colour
     // (actually shades of grey) typically when you draw anti-
-    // aliased text into a bitmap. The DC drawinf routines
-    // draw grey values on the black background although they
+    // aliased text into a bitmap. The DC drawing routines
+    // draw grey values on the black background, although they
     // actually mean to draw white with different alpha values.
     // This method reverses it, assuming a black (!) background
     // and white text (actually only the red channel is read).
@@ -500,6 +506,7 @@ public:
     unsigned char *GetData() const;
     void SetData( unsigned char *data, bool static_data=false );
     void SetData( unsigned char *data, int new_width, int new_height, bool static_data=false );
+    void SetDataRGBA(const unsigned char* data);
 
     unsigned char *GetAlpha() const;    // may return nullptr!
     bool HasAlpha() const { return GetAlpha() != nullptr; }
@@ -602,7 +609,7 @@ protected:
     long XYToIndex(int x, int y) const;
 
     virtual wxObjectRefData* CreateRefData() const override;
-    virtual wxObjectRefData* CloneRefData(const wxObjectRefData* data) const override;
+    wxNODISCARD virtual wxObjectRefData* CloneRefData(const wxObjectRefData* data) const override;
 
 private:
     friend class WXDLLIMPEXP_FWD_CORE wxImageHandler;
@@ -661,6 +668,7 @@ extern WXDLLIMPEXP_DATA_CORE(wxImage)    wxNullImage;
 #include "wx/imagtiff.h"
 #include "wx/imagpnm.h"
 #include "wx/imagxpm.h"
+#include "wx/imagwebp.h"
 #include "wx/imagiff.h"
 
 #endif // wxUSE_IMAGE

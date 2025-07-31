@@ -48,6 +48,13 @@ enum
     current UI locale or wxString::FromCDouble() and wxString::ToCDouble()
     functions for doing it always using period as decimal separator.
 
+    To set the C runtime functions (e.g., @c strtod()) to use the user's locale
+    consistently on all platforms, a wxLocale object should be created and
+    initialized with @c wxLANGUAGE_DEFAULT. This is not recommended due to
+    various side effects, but can be done for applications which rely on these
+    functions. (Note that this should be done in conjunction with calling
+    wxUILocale::UseDefault().)
+
     Localized applications should call wxUILocale::UseDefault() on startup to
     explicitly indicate that they opt-in using the current UI locale, even if
     this results in changing the global C locale, as is the case in wxGTK. Note
@@ -61,7 +68,7 @@ enum
     listed as a supported language in the application @c Info.plist file under
     @c CFBundleLocalizations key.
 
-    Unlike wxLocale class, this class doesn't affect the translations used by
+    Unlike the wxLocale class, this class doesn't affect the translations used by
     the application, see wxTranslations for doing this.
 
     @library{wxbase}
@@ -88,6 +95,18 @@ public:
         @return @true on success or @false if the default locale couldn't be set
      */
     static bool UseDefault();
+
+    /**
+        Return true if the locale was set by calling either UseDefault() or
+        UseLocaleName().
+
+        It is typically not necessary to call this function, as GetCurrent()
+        always returns a valid object, but it can be used to check whether an
+        application-set locale or the default one is being used.
+
+        @since 3.3.1
+     */
+    static bool IsSet();
 
     /**
         Get the object corresponding to the currently used locale.
@@ -332,6 +351,13 @@ public:
         GetSystemLanguage() is used.
     */
     static const wxLanguageInfo* GetLanguageInfo(int lang);
+
+    /**
+        Tries to retrieve a list of the user's (or OS's) preferred UI languages.
+
+        @return An empty list if language-guessing algorithm failed.
+    */
+    static wxVector<wxString> GetPreferredUILanguages();
 
     /**
         Returns English name of the given language or empty string if this

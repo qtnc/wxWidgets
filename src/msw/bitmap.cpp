@@ -473,7 +473,7 @@ static bool CheckAlpha(HBITMAP hbmp, HBITMAP* hdib = nullptr)
 // explicitly.
 static HBITMAP CreatePremultipliedDIBIfNeeded(HBITMAP hbmp)
 {
-    // Check if 32-bit bitmap realy has premultiplied RGB data
+    // Check if 32-bit bitmap really has premultiplied RGB data
     // and premuliply it if necessary.
 
     BITMAP bm;
@@ -557,7 +557,7 @@ bool wxBitmap::CopyFromIconOrCursor(const wxGDIImage& icon,
                 wxLogLastError(wxT("wxBitmap::CopyFromIconOrCursor - BitBlt"));
             }
             // Prepare the AND mask to be compatible with wxBitmap mask
-            // by seting its bits to 0 wherever XOR mask (image) bits are set to 1.
+            // by setting its bits to 0 wherever XOR mask (image) bits are set to 1.
             // This is done in-place by applying the following ROP:
             // dest = dest AND (NOT src) where dest=AND mask, src=XOR mask
             //
@@ -1841,6 +1841,14 @@ HICON wxBitmapToIconOrCursor(const wxBitmap& bmp,
         return 0;
     }
 
+    const wxSize bmpSize = bmp.GetSize();
+    if ( !iconWanted )
+    {
+        wxASSERT_MSG( hotSpotX >= 0 && hotSpotX < bmpSize.x &&
+                      hotSpotY >= 0 && hotSpotY < bmpSize.y,
+                      wxT("invalid cursor hot spot coordinates") );
+    }
+
     if ( bmp.HasAlpha() )
     {
         // Make a copy in case we would neeed to remove its mask.
@@ -1875,7 +1883,7 @@ HICON wxBitmapToIconOrCursor(const wxBitmap& bmp,
         // Create an empty mask bitmap.
         // it doesn't seem to work if we mess with the mask at all.
         AutoHBITMAP
-            hMonoBitmap(CreateBitmap(curBmp.GetWidth(),curBmp.GetHeight(),1,1,nullptr));
+            hMonoBitmap(CreateBitmap(bmpSize.x, bmpSize.y, 1, 1, nullptr));
 
         ICONINFO iconInfo;
         wxZeroMemory(iconInfo);
@@ -1922,7 +1930,7 @@ HICON wxBitmapToIconOrCursor(const wxBitmap& bmp,
         SelectInHDC selectMask(dcSrc, (HBITMAP)mask->GetMaskBitmap()),
                     selectBitmap(dcDst, iconInfo.hbmColor);
 
-        if ( !::BitBlt(dcDst, 0, 0, bmp.GetWidth(), bmp.GetHeight(),
+        if ( !::BitBlt(dcDst, 0, 0, bmpSize.x, bmpSize.y,
                        dcSrc, 0, 0, SRCAND) )
         {
             wxLogLastError(wxT("BitBlt"));

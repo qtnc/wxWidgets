@@ -779,7 +779,7 @@ WXDLLIMPEXP_BASE wchar_t* wxCRT_GetenvW(const wchar_t *name)
     //     time getenv() is called, so it is OK to use static string
     //     buffer to hold the data.
     static wxWCharBuffer value;
-    value = wxConvLibc.cMB2WC(getenv(wxConvLibc.cWC2MB(name)));
+    value = wxConvWhateverWorks.cMB2WC(getenv(wxConvWhateverWorks.cWC2MB(name)));
     return value.data();
 }
 #endif // !wxCRT_GetenvW
@@ -810,6 +810,7 @@ wxCRT_StrftimeW(wchar_t *s, size_t maxsize, const wchar_t *fmt, const struct tm 
 }
 #endif // !wxCRT_StrftimeW
 
+#if !defined(wxCRT_StrtoullA) || !defined(wxCRT_StrtoullW)
 template<typename T>
 static wxULongLong_t
 wxCRT_StrtoullBase(const T* nptr, T** endptr, int base, T* sign)
@@ -923,7 +924,9 @@ static wxULongLong_t wxCRT_DoStrtoull(const T* nptr, T** endptr, int base)
 
     return uval;
 }
+#endif // !defined(wxCRT_StrtoullA) || !defined(wxCRT_StrtoullW)
 
+#if !defined(wxCRT_StrtollA) || !defined(wxCRT_StrtollW)
 template<typename T>
 static wxLongLong_t wxCRT_DoStrtoll(const T* nptr, T** endptr, int base)
 {
@@ -953,6 +956,7 @@ static wxLongLong_t wxCRT_DoStrtoll(const T* nptr, T** endptr, int base)
 
     return val;
 }
+#endif // !defined(wxCRT_StrtollA) || !defined(wxCRT_StrtollW)
 
 #ifndef wxCRT_StrtollA
 wxLongLong_t wxCRT_StrtollA(const char* nptr, char** endptr, int base)
@@ -1059,10 +1063,11 @@ static bool wxIsLocaleUtf8()
     //     because a) it may be unavailable in some builds and b) has slightly
     //     different semantics (default locale instead of current)
 
+    const char* charset;
 #if defined(HAVE_LANGINFO_H) && defined(CODESET)
     // GNU libc provides current character set this way (this conforms to
     // Unix98)
-    const char *charset = nl_langinfo(CODESET);
+    charset = nl_langinfo(CODESET);
     if ( charset && wxIsCharsetUtf8(charset) )
         return true;
 #endif // HAVE_LANGINFO_H
@@ -1079,7 +1084,7 @@ static bool wxIsLocaleUtf8()
 
         // any other locale can also use UTF-8 encoding if it's explicitly
         // specified
-        const char* charset = strrchr(lc_ctype, '.');
+        charset = strrchr(lc_ctype, '.');
         if ( charset && wxIsCharsetUtf8(charset + 1) )
             return true;
     }

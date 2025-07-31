@@ -220,7 +220,7 @@ public:
 
         // Because new label can have different length than the old one
         // so updating button's label with TB_SETBUTTONINFO would require
-        // also manual re-positionining items in the control tools located
+        // also manual re-positioning items in the control tools located
         // to the right in the toolbar and recalculation of stretchable
         // spacers so it is easier just to recreate the toolbar with
         // Realize(). Performance penalty should be negligible.
@@ -475,7 +475,8 @@ bool wxToolBar::MSWCreateToolbar(const wxPoint& pos, const wxSize& size)
     // default and so looks very ugly in dark mode.
     if ( wxMSWDarkMode::IsActive() )
     {
-        COLORSCHEME colScheme{sizeof(COLORSCHEME)};
+        COLORSCHEME colScheme;
+        colScheme.dwSize = sizeof(COLORSCHEME);
         colScheme.clrBtnHighlight =
         colScheme.clrBtnShadow = wxSysColourToRGB(wxSYS_COLOUR_WINDOW);
         ::SendMessage(GetHwnd(), TB_SETCOLORSCHEME, 0, (LPARAM)&colScheme);
@@ -746,6 +747,24 @@ bool wxToolBar::MSWGetDarkModeSupport(MSWDarkModeSupport& support) const
 int wxToolBar::MSWGetToolTipMessage() const
 {
     return TB_GETTOOLTIPS;
+}
+
+/* static */
+wxVisualAttributes
+wxToolBar::GetClassDefaultAttributes(wxWindowVariant variant)
+{
+    wxVisualAttributes attrs =
+        wxToolBarBase::GetClassDefaultAttributes(variant);
+
+    // Override the default background because the default value doesn't
+    // provide any contrast with the main window in dark mode.
+    //
+    // Note that in light mode the default background colour is already
+    // wxSYS_COLOUR_BTNFACE anyhow, see wxWindow version of this function.
+    if ( wxMSWDarkMode::IsActive() )
+        attrs.colBg = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
+
+    return attrs;
 }
 
 // ----------------------------------------------------------------------------
@@ -1694,27 +1713,36 @@ bool wxToolBar::MSWOnNotify(int WXUNUSED(idCtrl),
                 nmtbcd->clrText =
                 nmtbcd->clrTextHighlight = wxColourToRGB(GetForegroundColour());
 
-                const wxColour colBg = m_hasBgCol
-                    ? GetBackgroundColour()
-                    : wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
-                nmtbcd->clrHighlightHotTrack = wxColourToRGB(colBg.ChangeLightness(115));
+                const wxColour colBg = GetBackgroundColour();
+                nmtbcd->clrHighlightHotTrack =
+                    wxColourToRGB(colBg.ChangeLightness(115));
 
                 *result = CDRF_DODEFAULT |
                           CDRF_NOTIFYPOSTPAINT |
                           TBCDRF_USECDCOLORS |
                           TBCDRF_HILITEHOTTRACK;
 
-                // Draw custom checked button background when it is not hot:
-                // by default it is drawn in a light colour not appropriate for
-                // the dark mode under Windows 11.
+                // Draw custom button background when it would be drawn with a
+                // light background by default: this is the case for checked
+                // buttons under Windows 11 (unless they are "hot") and for
+                // selected buttons (which is a state the button is in when
+                // the mouse is pressed over it).
+                wxColour customBg;
                 if ( (nmtbcd->nmcd.uItemState &
                         (CDIS_CHECKED | CDIS_HOT)) == CDIS_CHECKED )
                 {
-                    const wxColor color =
-                        wxSystemSettings::GetColour(wxSYS_COLOUR_HOTLIGHT)
-                            .ChangeLightness(110);
+                    customBg = wxSystemSettings::GetColour(wxSYS_COLOUR_HOTLIGHT);
+                }
+                else if ( nmtbcd->nmcd.uItemState == CDIS_SELECTED )
+                {
+                    customBg = colBg;
+                }
 
-                    AutoHBRUSH br(wxColourToRGB(color));
+                if ( customBg.IsOk() )
+                {
+                    customBg = customBg.ChangeLightness(110);
+
+                    AutoHBRUSH br(wxColourToRGB(customBg));
                     ::FillRect(nmtbcd->nmcd.hdc, &nmtbcd->nmcd.rc, br);
                     *result |= TBCDRF_NOBACKGROUND;
                 }
@@ -1732,14 +1760,11 @@ bool wxToolBar::MSWOnNotify(int WXUNUSED(idCtrl),
                                   (WPARAM)nmtbcd->nmcd.dwItemSpec, (LPARAM)&bi);
                 if ( itemIndex >= 0 && bi.fsStyle & TBSTYLE_DROPDOWN )
                 {
-                    RECT ddrc = { 0 };
+                    RECT ddrc = { };
                     ::SendMessage(GetHwnd(), TB_GETITEMDROPDOWNRECT,
                                   (WPARAM)itemIndex, (LPARAM)&ddrc);
 
-                    wxColour colBg = m_hasBgCol
-                        ? GetBackgroundColour()
-                        : wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
-
+                    wxColour colBg = GetBackgroundColour();
                     if ( nmtbcd->nmcd.uItemState & CDIS_HOT )
                     {
                         // Make this slightly different from the colour used
@@ -2258,11 +2283,8 @@ WXHBRUSH wxToolBar::MSWGetToolbarBgBrush()
     // different colours), it seems to be a solid one and using REBAR
     // background brush as we used to do before doesn't look good at all under
     // Windows 7 (and probably Vista too), so for now we just keep it simple
-    wxColour const
-        colBg = m_hasBgCol ? GetBackgroundColour()
-                           : wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
     wxBrush * const
-        brush = wxTheBrushList->FindOrCreateBrush(colBg);
+        brush = wxTheBrushList->FindOrCreateBrush(GetBackgroundColour());
 
     return brush ? static_cast<WXHBRUSH>(brush->GetResourceHandle()) : 0;
 }

@@ -77,25 +77,32 @@ by MSVS installation.
 
 In this window, change directory to `%%WXWIN%\build\msw` and type
 
+        > msbuild /m /p:Configuration=Debug /p:Platform=x64 wx_vc17.sln
+
+to build wxWidgets in the debug configuration as a static library using MSVS
+2022 (MSVC 17) toolset. Use "Release" configuration instead of "Debug" for the
+release version build and `wx_vc14.sln`, `wx_vc15.sln` or `wx_vc16.sln` for
+MSVS 2015, 2017 or 2019 respectively.
+
+After the build completes, open `%%WXWIN%\samples\samples_vc17.sln` solution
+and try building and running the minimal sample to verify that your build is
+functional.
+
+
+### From the command line using nmake (legacy)
+
+Note that using MSBuild is strongly recommended, as it can use multiple
+processors for building, resulting in significant speedup, but it is also
+possible to use `nmake` with the provided makefiles. For example, use
+
         > nmake /f makefile.vc
 
 to build wxWidgets in the default debug configuration as a static library. You
-can also do
+can specify `BUILD=release`, `SHARED=1` and `TARGET_CPU=X86` to choose the
+release, DLL and 32-bit builds respectively.
 
-        > nmake /f makefile.vc BUILD=release
-
-to build a release version or
-
-        > nmake /f makefile.vc BUILD=release SHARED=1 TARGET_CPU=X86
-
-to build a 32 bit release DLL version from an x86 command prompt, or
-
-        > nmake /f makefile.vc BUILD=release SHARED=1 TARGET_CPU=X64
-
-to build a 64 bit release DLL version from an x64 command prompt.
-
-TARGET_CPU=ARM64 is supported while TARGET_CPU=ARM64EC is, at present, not
-supported.
+Note that `TARGET_CPU=ARM64` is supported while `TARGET_CPU=ARM64EC` is, at
+present, not supported here.
 
 See [Make Parameters](#msw_build_make_params) for more information about the
 additional parameters that can be specified on the command line.
@@ -487,10 +494,24 @@ MSVC, you also need to:
   depends on which libraries you use and whether you built wxWidgets in
   monolithic or default multi-lib mode and basically should include all the
   relevant libraries from the directory above, e.g. `wxmsw34ud_core.lib
-  wxbase34ud.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxzlibd.lib wxregexud.lib
-  wxexpatd.lib` for a debug build of an application using the core library of
-  wxWidgets 3.4 only (all wxWidgets applications use the base library).
-
+  wxbase34ud.lib wxtiffd.lib wxjpegd.lib wxpngd.lib wxwebpd.lib wxzlibd.lib
+  wxregexud.lib wxexpatd.lib` for a debug build of an application using the
+  core library of wxWidgets 3.4 only (all wxWidgets applications use the base
+  library).
+* When using classes from non-core libraries, e.g. `wxPropertyGrid`, also link
+  with the corresponding library, as indicated in the class documentation, i.e.
+  `wxmsw34ud_propgrid.lib` in this case.
+* When using `wxStyledTextCtrl`, if static (not DLL) wxWidgets libraries are
+  used, then, in addition to linking with `wxmsw34ud_stc.lib`, you also need
+  to add `wxlexilla[d].lib` and `wxscintilla[d].lib` the list of libraries
+  to link with.
+* Finally, when using static wxWidgets libraries you must also add all Windows
+  libraries that are used by wxWidgets to the linker input. Currently this
+  means linking with the following libraries (some of which might be
+  unnecessary depending on your build configuration): `advapi32 comctl32
+  comdlg32 gdi32 gdiplus imm32 kernel32 msimg32 ole32 oleacc oleaut32 opengl32
+  rpcrt4 shell32 shlwapi user32 uuid uxtheme version wininet winmm winspool
+  ws2_32`.
 
 For example, to compile your program with gcc using debug wxWidgets DLLs
 you would need to use the following options for the compiler (and `windres`

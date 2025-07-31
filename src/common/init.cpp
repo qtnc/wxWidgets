@@ -28,8 +28,6 @@
 #include "wx/init.h"
 #include "wx/atomic.h"
 
-#include "wx/except.h"
-
 #if defined(__WINDOWS__)
     #include "wx/msw/private.h"
     #include "wx/msw/msvcrt.h"
@@ -50,6 +48,7 @@
 
 #include "wx/private/init.h"
 #include "wx/private/localeset.h"
+#include "wx/private/safecall.h"
 
 #include <memory>
 
@@ -265,13 +264,15 @@ void wxInitData::Free()
         // If argvMSW is non-null, argv must be the same value, so reset it too.
         argv = argvMSW = nullptr;
     }
-#else
-    for ( int i = 0; i < argc; i++ )
-    {
-        free(argv[i]);
-    }
-    wxDELETEA(argv);
+    else
 #endif // __WINDOWS__
+    {
+        for ( int i = 0; i < argc; i++ )
+        {
+            free(argv[i]);
+        }
+        wxDELETEA(argv);
+    }
 
     if ( argc )
     {
@@ -553,7 +554,7 @@ int wxEntryReal(int& argc, wxChar **argv)
         return wxApp::GetFatalErrorExitCode();
     }
 
-    wxTRY
+    return wxSafeCall<int>([]()
     {
         // app initialization
         if ( !wxTheApp->CallOnInit() )
@@ -573,11 +574,11 @@ int wxEntryReal(int& argc, wxChar **argv)
 
         // app execution
         return wxTheApp->OnRun();
-    }
-    wxCATCH_ALL(
-        wxTheApp->OnUnhandledException();
+    }, []()
+    {
+        wxApp::CallOnUnhandledException();
         return wxApp::GetFatalErrorExitCode();
-    )
+    });
 }
 
 // as with wxEntryStart, we provide an ANSI wrapper

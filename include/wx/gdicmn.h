@@ -28,6 +28,7 @@ class WXDLLIMPEXP_FWD_CORE wxBitmap;
 class WXDLLIMPEXP_FWD_CORE wxBrush;
 class WXDLLIMPEXP_FWD_CORE wxColour;
 class WXDLLIMPEXP_FWD_CORE wxCursor;
+class WXDLLIMPEXP_FWD_CORE wxCursorBundle;
 class WXDLLIMPEXP_FWD_CORE wxFont;
 class WXDLLIMPEXP_FWD_CORE wxIcon;
 class WXDLLIMPEXP_FWD_CORE wxPalette;
@@ -79,6 +80,8 @@ enum wxBitmapType
     wxBITMAP_TYPE_TGA,
     wxBITMAP_TYPE_MACCURSOR,
     wxBITMAP_TYPE_MACCURSOR_RESOURCE,
+    wxBITMAP_TYPE_WEBP,
+    wxBITMAP_TYPE_WEBP_RESOURCE,
 
     wxBITMAP_TYPE_MAX,
     wxBITMAP_TYPE_ANY = 50
@@ -273,11 +276,10 @@ enum wxEllipsizeMode
 class WXDLLIMPEXP_CORE wxWARN_UNUSED wxSize
 {
 public:
-    // members are public for compatibility, don't use them directly.
-    int x, y;
+    int x = 0, y = 0;
 
     // constructors
-    wxSize() : x(0), y(0) { }
+    wxSize() = default;
     wxSize(int xx, int yy) : x(xx), y(yy) { }
 
     // no copy ctor or assignment operator - the defaults are ok
@@ -427,6 +429,9 @@ public:
 
     bool IsFullySpecified() const { return x != wxDefaultCoord && y != wxDefaultCoord; }
 
+    // Return true if size doesn't define a valid, non-empty area.
+    bool IsEmpty() const { return x <= 0 || y <= 0; }
+
     // Check that this size object is at least as big as the other one in both
     // directions.
     bool IsAtLeast(const wxSize& sz) const { return x >= sz.x && y >= sz.y; }
@@ -453,10 +458,10 @@ public:
 class WXDLLIMPEXP_CORE wxWARN_UNUSED wxRealPoint
 {
 public:
-    double x;
-    double y;
+    double x = 0.0;
+    double y = 0.0;
 
-    wxRealPoint() : x(0.0), y(0.0) { }
+    wxRealPoint() = default;
     wxRealPoint(double xx, double yy) : x(xx), y(yy) { }
     wxRealPoint(const wxPoint& pt);
 
@@ -603,9 +608,9 @@ public:
 class WXDLLIMPEXP_CORE wxWARN_UNUSED wxPoint
 {
 public:
-    int x, y;
+    int x = 0, y = 0;
 
-    wxPoint() : x(0), y(0) { }
+    wxPoint() = default;
     wxPoint(int xx, int yy) : x(xx), y(yy) { }
     wxPoint(const wxRealPoint& pt) : x(wxRound(pt.x)), y(wxRound(pt.y)) { }
 
@@ -769,9 +774,7 @@ WX_DECLARE_LIST_WITH_DECL(wxPoint, wxPointList, class WXDLLIMPEXP_CORE);
 class WXDLLIMPEXP_CORE wxWARN_UNUSED wxRect
 {
 public:
-    wxRect()
-        : x(0), y(0), width(0), height(0)
-        { }
+    wxRect() = default;
     wxRect(int xx, int yy, int ww, int hh)
         : x(xx), y(yy), width(ww), height(hh)
         { }
@@ -780,7 +783,7 @@ public:
         : x(pt.x), y(pt.y), width(size.x), height(size.y)
         { }
     wxRect(const wxSize& size)
-        : x(0), y(0), width(size.x), height(size.y)
+        : width(size.x), height(size.y)
         { }
 
     // default copy ctor and assignment operators ok
@@ -929,7 +932,10 @@ public:
     }
 
 public:
-    int x, y, width, height;
+    int x = 0,
+        y = 0,
+        width = 0,
+        height = 0;
 };
 
 
@@ -961,6 +967,16 @@ public:
     wxColourDatabase();
     ~wxColourDatabase();
 
+    // use the given colour scheme: CSS one is the default since 3.3.0,
+    // Traditional is the legacy colour scheme used by wxWidgets before it.
+    enum Scheme
+    {
+        CSS,
+        Traditional
+    };
+
+    void UseScheme(Scheme scheme);
+
     // find colour by name or name for the given colour
     wxColour Find(const wxString& name) const;
     wxString FindName(const wxColour& colour) const;
@@ -977,6 +993,8 @@ private:
     void Initialize();
 
     wxStringToColourHashMap *m_map;
+
+    Scheme m_scheme;
 };
 
 #if WXWIN_COMPATIBILITY_3_2
@@ -1036,7 +1054,9 @@ public:
         COLOUR_CYAN,
         COLOUR_GREEN,
         COLOUR_YELLOW,
+        COLOUR_GREY,
         COLOUR_LIGHTGREY,
+        COLOUR_MEDIUMGREY,
         COLOUR_RED,
         COLOUR_WHITE,
         CURSOR_CROSS,
@@ -1173,7 +1193,7 @@ extern void WXDLLIMPEXP_CORE wxClientDisplayRect(int *x, int *y, int *width, int
 extern wxRect WXDLLIMPEXP_CORE wxGetClientDisplayRect();
 
 // set global cursor
-extern void WXDLLIMPEXP_CORE wxSetCursor(const wxCursor& cursor);
+extern void WXDLLIMPEXP_CORE wxSetCursor(const wxCursorBundle& cursors);
 
 #endif
     // _WX_GDICMNH__
